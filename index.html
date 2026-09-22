@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // In the AI Studio Cloud Run dev environment, Vite HMR is disabled (DISABLE_HMR=true).
+      // Vite's client script attempts to connect to its HMR WebSocket and throws when it closes without opening.
+      // Intercept and suppress this benign development rejection so it does not trigger an unhandled error overlay.
+      window.addEventListener('unhandledrejection', function (event) {
+        var reason = event && event.reason;
+        var msg = (reason && (reason.message || reason.stack || String(reason))) || '';
+        if (
+          msg.includes('WebSocket closed without opened') ||
+          msg.includes('failed to connect to websocket') ||
+          msg.includes('vite-hmr')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation && event.stopImmediatePropagation();
+        }
+      });
+      window.addEventListener('error', function (event) {
+        var msg = (event && (event.message || (event.error && event.error.message))) || '';
+        if (
+          msg.includes('WebSocket closed without opened') ||
+          msg.includes('failed to connect to websocket')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation && event.stopImmediatePropagation();
+        }
+      });
+    </script>
+    <title>Live Sports Scores & Facebook Publisher</title>
+    <meta name="description" content="Real-time football scores platform powered by Scrapling web scraping, WebSocket streaming, REST API, and automated Facebook Page event publishing." />
+    <meta property="og:title" content="Live Sports Scores & Facebook Publisher" />
+    <meta property="og:description" content="Real-time football scores platform powered by Scrapling web scraping, WebSocket streaming, REST API, and automated Facebook Page event publishing." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

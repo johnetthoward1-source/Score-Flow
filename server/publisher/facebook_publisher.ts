@@ -205,6 +205,17 @@ export class FacebookPublisher {
       };
     }
 
+    // 4. Never automatically requeue the exact payload that Meta blocked.
+    // A different successful publication clears this quarantine; manual reset also clears it.
+    if (state.blockedContentHash && state.blockedContentHash === contentHash) {
+      return {
+        success: false,
+        blocked: true,
+        reason: 'This exact publication payload was quarantined after Meta Error 368/1390008. It will not be retried automatically.',
+        contentHash,
+      };
+    }
+
     // 4. For LIVE Scoreboard or HALF_TIME: Coalesce into ONE pending publication
     if (req.type === 'LIVE' || req.type === 'HALF_TIME') {
       const existingPending = await db.getPendingPublication(req.type);
@@ -405,6 +416,7 @@ export class FacebookPublisher {
           lastFacebookPostId: result.postId,
           lastPublishedContentHash: currentHash,
           pendingContentHash: undefined,
+          blockedContentHash: undefined,
           lastErrorCode: undefined,
           lastErrorMessage: undefined,
         });
@@ -442,7 +454,8 @@ export class FacebookPublisher {
         console.warn(`[FB] Publication failed: ${errorMsg} (code ${errorCode}, subcode ${errorSubcode})`);
 
         // Check for Meta Error 1390008 (Anti-Spam Velocity Block)
-        if (result.isSpamBlocked || errorSubcode === 1390008 || errorCode === 368) {
+        const isMetaVelocityBlock = errorCode === 368 && errorSubcode === 1390008;
+        if (isMetaVelocityBlock) {
           console.log('[FB] Meta 1390008 detected');
 
           const newConsecutive = (state.consecutiveMetaBlocks || 0) + 1;
@@ -468,6 +481,13 @@ export class FacebookPublisher {
             lastErrorCode: 1390008,
             lastErrorMessage: errorMsg,
           });
+
+          // Quarantine this exact publication. Do NOT leave it PENDING, or the worker
+          // would retry the same payload automatically when cooldown expires.
+          pending.status = 'BLOCKED';
+          pending.lastError = 'Meta Error 368 / Subcode 1390008: ' + errorMsg;
+          await db.savePendingPublication(pending);
+          await db.updatePublisherState({ blockedContentHash: currentHash, pendingContentHash: undefined });
 
           // Record failure in facebook_posts
           await db.saveFacebookPost({
@@ -560,6 +580,7 @@ export class FacebookPublisher {
       publishingPaused: false,
       cooldownUntil: undefined,
       cooldownReason: undefined,
+      blockedContentHash: undefined,
       consecutiveMetaBlocks: 0,
     });
     console.log('[FB] Publisher cooldown manually reset. Publisher resumed.');

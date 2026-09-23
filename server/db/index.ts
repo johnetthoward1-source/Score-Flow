@@ -691,7 +691,7 @@ class DatabaseManager {
             id, publishing_enabled, publishing_paused, pause_reason,
             cooldown_until, cooldown_reason, last_attempt_at, last_publish_at,
             last_successful_publish_at, last_facebook_post_id, last_published_content_hash,
-            pending_content_hash, consecutive_meta_blocks, total_meta_blocks,
+            pending_content_hash, blocked_content_hash, consecutive_meta_blocks, total_meta_blocks,
             last_error_code, last_error_message, updated_at
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
           ON CONFLICT (id) DO UPDATE SET
@@ -706,6 +706,7 @@ class DatabaseManager {
             last_facebook_post_id = EXCLUDED.last_facebook_post_id,
             last_published_content_hash = EXCLUDED.last_published_content_hash,
             pending_content_hash = EXCLUDED.pending_content_hash,
+            blocked_content_hash,
             consecutive_meta_blocks = EXCLUDED.consecutive_meta_blocks,
             total_meta_blocks = EXCLUDED.total_meta_blocks,
             last_error_code = EXCLUDED.last_error_code,
@@ -724,6 +725,7 @@ class DatabaseManager {
             updated.lastFacebookPostId || null,
             updated.lastPublishedContentHash || null,
             updated.pendingContentHash || null,
+            updated.blockedContentHash || null,
             updated.consecutiveMetaBlocks,
             updated.totalMetaBlocks,
             updated.lastErrorCode || null,

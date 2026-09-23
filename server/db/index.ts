@@ -293,6 +293,7 @@ class DatabaseManager {
         last_facebook_post_id VARCHAR(128),
         last_published_content_hash VARCHAR(64),
         pending_content_hash VARCHAR(64),
+        blocked_content_hash VARCHAR(64),
         consecutive_meta_blocks INT NOT NULL DEFAULT 0,
         total_meta_blocks INT NOT NULL DEFAULT 0,
         last_error_code INT,
@@ -334,6 +335,7 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_fb_pending_type ON facebook_pending_publication(publication_type);
     `;
     await this.pgPool.query(schemaSql);
+    await this.pgPool.query('ALTER TABLE facebook_publisher_state ADD COLUMN IF NOT EXISTS blocked_content_hash VARCHAR(64)');
   }
 
   async saveMatches(matches: Match[]): Promise<void> {

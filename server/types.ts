@@ -192,6 +192,7 @@ export interface FacebookPublisherState {
   lastFacebookPostId?: string;
   lastPublishedContentHash?: string;
   pendingContentHash?: string;
+  blockedContentHash?: string;
   consecutiveMetaBlocks: number;
   totalMetaBlocks: number;
   lastErrorCode?: number;
@@ -206,7 +207,7 @@ export interface FacebookPendingPublication {
   publicationType: FacebookPublicationType;
   content: string;
   contentHash: string;
-  status: 'PENDING' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED' | 'SKIPPED';
+  status: 'PENDING' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED' | 'BLOCKED' | 'SKIPPED';
   createdAt: string;
   updatedAt: string;
   attemptCount: number;
@@ -216,6 +217,7 @@ export interface FacebookPendingPublication {
     matchCount?: number;
     leagueNames?: string[];
     customTitle?: string;
+    publicationKey?: string;
   };
 }
 

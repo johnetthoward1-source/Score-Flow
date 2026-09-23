@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS facebook_publisher_state (
     last_facebook_post_id VARCHAR(128),
     last_published_content_hash VARCHAR(64),
     pending_content_hash VARCHAR(64),
-    blocked_content_hash VARCHAR(64);
     blocked_content_hash VARCHAR(64),
     consecutive_meta_blocks INT NOT NULL DEFAULT 0,
     total_meta_blocks INT NOT NULL DEFAULT 0,
@@ -60,5 +59,3 @@ CREATE INDEX IF NOT EXISTS idx_fb_pending_type ON facebook_pending_publication(p
 CREATE INDEX IF NOT EXISTS idx_fb_pending_available ON facebook_pending_publication(available_at);
 
 
--- Migration 002: persist the exact content hash that triggered Meta anti-spam blocking.
-ALTER TABLE facebook_publisher_state ADD COLUMN IF NOT EXISTS blocked_content_hash VARCHAR(64);

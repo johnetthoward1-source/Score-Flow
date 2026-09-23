@@ -658,6 +658,7 @@ class DatabaseManager {
           lastFacebookPostId: r.last_facebook_post_id || undefined,
           lastPublishedContentHash: r.last_published_content_hash || undefined,
           pendingContentHash: r.pending_content_hash || undefined,
+          blockedContentHash: r.blocked_content_hash || undefined,
           consecutiveMetaBlocks: Number(r.consecutive_meta_blocks) || 0,
           totalMetaBlocks: Number(r.total_meta_blocks) || 0,
           lastErrorCode: r.last_error_code ? Number(r.last_error_code) : undefined,

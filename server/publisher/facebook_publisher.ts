@@ -16,6 +16,7 @@ export interface PublishRequest {
   matchId?: string;
   matchTitle?: string;
   leagueName?: string;
+  idempotencyKey?: string;
   metadata?: Record<string, any>;
   forceImmediate?: boolean; // For manual or test publish requests that should attempt processing synchronously
 }
@@ -126,12 +127,11 @@ export class FacebookPublisher {
    */
   calculateMetaBackoffSeconds(consecutiveBlocks: number): number {
     const initial = config.fbInitialCooldownSeconds || 600; // 10 min
-    const max = config.fbMaxCooldownSeconds || 3600; // 60 min
+    const max = config.fbMaxCooldownSeconds || 3600; // 60 min ceiling
 
     if (consecutiveBlocks <= 1) return initial;
-    if (consecutiveBlocks === 2) return Math.min(max, initial * 2); // 20 min
-    if (consecutiveBlocks === 3) return Math.min(max, initial * 4); // 40 min
-    return max; // 60 min ceiling
+    const backoff = initial * Math.pow(2, consecutiveBlocks - 1);
+    return Math.min(max, backoff);
   }
 
   /**
@@ -179,6 +179,7 @@ export class FacebookPublisher {
     if (cooldown.active) {
       const reasonMsg = `Facebook publishing is paused because Meta returned error 1390008 (Anti-Spam Velocity Filter). Cooldown active for ${cooldown.remainingSeconds}s.`;
       console.log(`[FB] Publication skipped - cooldown active (${cooldown.remainingSeconds}s remaining)`);
+      console.log('[FB] New Facebook publication requests suppressed during cooldown');
 
       if (req.type === 'TEST') {
         console.log('[FB] Test publication rejected because publisher is paused');
@@ -193,10 +194,41 @@ export class FacebookPublisher {
       };
     }
 
-    // 3. Safety Check: Content Hashing & Deduplication
+    // 3. Determine deterministic logical publication key / idempotency key
     const contentHash = this.computeContentHash(req.message);
+    const publicationKey =
+      req.idempotencyKey ||
+      (req.matchId
+        ? `pub_${req.type.toLowerCase()}_${req.matchId}`
+        : `pub_${req.type.toLowerCase()}_${contentHash.substring(0, 16)}`);
+
+    // 4. Check if an identical or logically equivalent pending or blocked publication exists
+    const existing = await db.findPendingOrBlockedPublication(publicationKey, contentHash);
+    if (existing) {
+      if (existing.status === 'BLOCKED') {
+        console.log(`[FB] Duplicate publication suppressed: ${publicationKey} (already quarantined)`);
+        return {
+          success: false,
+          blocked: true,
+          duplicate: true,
+          reason: 'Equivalent publication is already quarantined as BLOCKED.',
+        };
+      }
+      if (existing.status === 'PENDING') {
+        console.log(`[FB] Duplicate publication suppressed: ${publicationKey}`);
+        return {
+          success: true,
+          duplicate: true,
+          queued: true,
+          contentHash,
+          reason: 'Duplicate publication already pending in queue.',
+        };
+      }
+    }
+
+    // 5. Safety Check: Content Hashing & Deduplication with last published
     if (state.lastPublishedContentHash && state.lastPublishedContentHash === contentHash) {
-      console.log('[FB] Duplicate scoreboard detected. Publication skipped.');
+      console.log(`[FB] Duplicate publication suppressed: ${publicationKey}`);
       return {
         success: false,
         duplicate: true,
@@ -205,7 +237,7 @@ export class FacebookPublisher {
       };
     }
 
-    // 4. For LIVE Scoreboard or HALF_TIME: Coalesce into ONE pending publication
+    // 6. For LIVE Scoreboard or HALF_TIME: Coalesce into ONE pending publication
     if (req.type === 'LIVE' || req.type === 'HALF_TIME') {
       const existingPending = await db.getPendingPublication(req.type);
       if (existingPending) {
@@ -226,8 +258,8 @@ export class FacebookPublisher {
       }
     }
 
-    // 5. Store pending publication in PostgreSQL/database
-    const pendingId = `pub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    // 7. Store pending publication in PostgreSQL/database using deterministic publicationKey
+    const pendingId = publicationKey;
     const pending: FacebookPendingPublication = {
       id: pendingId,
       publicationType: req.type,
@@ -238,12 +270,17 @@ export class FacebookPublisher {
       updatedAt: new Date().toISOString(),
       attemptCount: 0,
       availableAt: new Date().toISOString(),
-      metadata: req.metadata,
+      metadata: {
+        ...req.metadata,
+        matchId: req.matchId,
+        matchTitle: req.matchTitle,
+        leagueName: req.leagueName,
+      },
     };
     await db.savePendingPublication(pending);
     await db.updatePublisherState({ pendingContentHash: contentHash });
 
-    // 6. If immediate processing requested (e.g. manual/test publish when safe)
+    // 8. If immediate processing requested (e.g. manual/test publish when safe)
     if (req.forceImmediate) {
       return await this.executePublication(pending);
     }
@@ -309,6 +346,19 @@ export class FacebookPublisher {
    * Atomic execution: Acquire Lock -> Reload State -> Recheck -> Publish -> Update State -> Release Lock
    */
   private async executePublication(pending: FacebookPendingPublication): Promise<PublishRequestResult> {
+    // 0. CHECK COOLDOWN BEFORE ACQUIRING LOCK
+    const preCooldown = await this.isCooldownActive();
+    if (preCooldown.active) {
+      console.log(`[FB] Publication skipped - cooldown active (${preCooldown.remainingSeconds}s remaining)`);
+      return {
+        success: false,
+        blocked: true,
+        reason: `Meta anti-spam cooldown active for ${preCooldown.remainingSeconds}s.`,
+        cooldownUntil: preCooldown.cooldownUntil,
+        retryAfterSeconds: preCooldown.remainingSeconds,
+      };
+    }
+
     // 1. ACQUIRE DISTRIBUTED LOCK
     const acquired = await db.acquirePublisherLock(this.workerId, config.fbLockLeaseSeconds);
     if (!acquired) {
@@ -428,6 +478,13 @@ export class FacebookPublisher {
         // Delete from pending table
         await db.deletePendingPublication(pending.id);
 
+        // Finalize claimed matches for roundups
+        if (pending.publicationType === 'FULL_TIME') {
+          await db.markClaimedFtMatchesPublished(pending.id);
+        } else if (pending.publicationType === 'HALF_TIME') {
+          await db.markClaimedHtMatchesPublished(pending.id);
+        }
+
         return {
           success: true,
           postId: result.postId,
@@ -437,13 +494,17 @@ export class FacebookPublisher {
         // ERROR PATH
         const errorCode = result.errorCode || (result.isSpamBlocked ? 368 : 0);
         const errorSubcode = result.errorSubcode;
+        const isMetaVelocityBlock =
+          (errorCode === 368 && errorSubcode === 1390008) ||
+          result.isVelocityBlock ||
+          (result.error && result.error.includes('1390008'));
         const errorMsg = result.error || 'Unknown Facebook API error';
 
         console.warn(`[FB] Publication failed: ${errorMsg} (code ${errorCode}, subcode ${errorSubcode})`);
 
         // Check for Meta Error 1390008 (Anti-Spam Velocity Block)
-        if (result.isSpamBlocked || errorSubcode === 1390008 || errorCode === 368) {
-          console.log('[FB] Meta 1390008 detected');
+        if (isMetaVelocityBlock) {
+          console.log('[FB] Meta velocity block detected: code=368 subcode=1390008');
 
           const newConsecutive = (state.consecutiveMetaBlocks || 0) + 1;
           const totalBlocks = (state.totalMetaBlocks || 0) + 1;
@@ -456,6 +517,8 @@ export class FacebookPublisher {
           } else {
             console.log(`[FB] Persistent cooldown extended: ${backoffSeconds}s (block #${newConsecutive})`);
           }
+          console.log(`[FB] Publication quarantined: ${pending.id}`);
+          console.log(`[FB] Publishing cooldown active until ${cooldownUntilIso}`);
 
           // Persist backoff in PostgreSQL
           await db.updatePublisherState({
@@ -467,14 +530,32 @@ export class FacebookPublisher {
             totalMetaBlocks: totalBlocks,
             lastErrorCode: 1390008,
             lastErrorMessage: errorMsg,
+            pendingContentHash: undefined,
           });
+
+          // QUARANTINE: Mark status as BLOCKED so it is NEVER re-attempted.
+          // DO NOT leave the publication in PENDING!
+          pending.status = 'BLOCKED';
+          pending.lastError = errorMsg;
+          pending.updatedAt = new Date().toISOString();
+          pending.metadata = {
+            ...pending.metadata,
+            errorCode: 368,
+            errorSubcode: 1390008,
+            errorMessage: errorMsg,
+            blockedAt: new Date().toISOString(),
+            cooldownUntil: cooldownUntilIso,
+            backoffSeconds,
+            consecutiveBlocks: newConsecutive,
+          };
+          await db.savePendingPublication(pending);
 
           // Record failure in facebook_posts
           await db.saveFacebookPost({
             id: pending.id,
-            matchId: pending.publicationType,
-            matchTitle: `Scoreboard (${pending.publicationType})`,
-            leagueName: 'Various',
+            matchId: (pending.metadata?.matchId as string) || pending.publicationType,
+            matchTitle: (pending.metadata?.customTitle as string) || (pending.metadata?.matchTitle as string) || `Scoreboard (${pending.publicationType})`,
+            leagueName: (pending.metadata?.leagueNames as string[])?.join(', ') || (pending.metadata?.leagueName as string) || 'Various',
             eventType: 'ROUNDUP' as any,
             message: pending.content,
             status: 'FAILED',
@@ -561,8 +642,15 @@ export class FacebookPublisher {
       cooldownUntil: undefined,
       cooldownReason: undefined,
       consecutiveMetaBlocks: 0,
+      lastErrorCode: undefined,
+      lastErrorMessage: undefined,
+      pendingContentHash: undefined,
     });
-    console.log('[FB] Publisher cooldown manually reset. Publisher resumed.');
+    // Clear any stuck pending publications that triggered the cooldown
+    await db.clearPendingPublications();
+    // Clear claimed matches so roundup coordinator can freshly re-evaluate
+    await db.clearClaimedMatches();
+    console.log('[FB] Publisher cooldown manually reset. Pending publications and match claims cleared. Publisher resumed.');
   }
 
   /**

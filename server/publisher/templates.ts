@@ -158,10 +158,20 @@ export function formatLeagueSectionHeader(country?: string, leagueName?: string)
   return `🏆 ${title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
+const FOOTER_SIGNATURES = [
+  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📢 Follow @${name} for live scores & breaking updates!\n#${tag} #LiveScores #Football #Matchday`,
+  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚽ Real-time scores & coverage on @${name}\n#${tag} #Football #LiveScore #Soccer`,
+  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔥 Stay updated with @${name} for live scores & instant results!\n#${tag} #Matchday #LiveScores #Football`,
+  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ Follow @${name} for ongoing match action & verified scores\n#${tag} #Soccer #LiveUpdates #Matchday`,
+  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 Match statistics & live scores powered by @${name}\n#${tag} #Football #GameScores #Scores`,
+];
+
 export function getBrandedFooter(config?: FacebookPageConfig): string {
   const name = config?.pageName?.trim() || 'GameScores';
-  const tag = name.replace(/[^a-zA-Z0-9]/g, '');
-  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📢 Follow @${name} for live scores & breaking updates!\n#${tag} #LiveScores #Football #Matchday`;
+  const tag = name.replace(/[^a-zA-Z0-9]/g, '') || 'GameScores';
+  // Pick rotating signature based on 5-minute time windows to prevent identical consecutive post signatures
+  const index = Math.floor(Date.now() / (1000 * 60 * 5)) % FOOTER_SIGNATURES.length;
+  return FOOTER_SIGNATURES[index](name, tag);
 }
 
 export const MATCH_STATS_LEGEND = `━━━━━━━━━━━━━━━━━━━━━━━━━━━

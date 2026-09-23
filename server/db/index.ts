@@ -56,6 +56,8 @@ interface LocalDbSchema {
   apiKeys: ApiKeyRecord[];
   adminUsers: StoredAdminUser[];
   adminSessions: AdminSession[];
+  claimedFtMatches?: any[];
+  claimedHtMatches?: any[];
 }
 
 class DatabaseManager {
@@ -66,6 +68,8 @@ class DatabaseManager {
     matches: {},
     events: {},
     facebookPosts: [],
+    claimedFtMatches: [],
+    claimedHtMatches: [],
     publisherState: {
       id: 'default',
       publishingEnabled: config.fbPublishEnabled !== false,
@@ -329,6 +333,30 @@ class DatabaseManager {
       INSERT INTO facebook_publisher_lock (lock_name, locked)
       VALUES ('fb_publish_master_lock', FALSE)
       ON CONFLICT (lock_name) DO NOTHING;
+
+      CREATE TABLE IF NOT EXISTS facebook_claimed_ft_matches (
+        match_id VARCHAR(64) PRIMARY KEY,
+        team_key VARCHAR(128) NOT NULL,
+        home_team VARCHAR(128),
+        away_team VARCHAR(128),
+        league_name VARCHAR(128),
+        score VARCHAR(32),
+        publication_key VARCHAR(128) NOT NULL,
+        claimed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_claimed_ft_team_key ON facebook_claimed_ft_matches(team_key);
+
+      CREATE TABLE IF NOT EXISTS facebook_claimed_ht_matches (
+        match_id VARCHAR(64) PRIMARY KEY,
+        team_key VARCHAR(128) NOT NULL,
+        home_team VARCHAR(128),
+        away_team VARCHAR(128),
+        league_name VARCHAR(128),
+        score VARCHAR(32),
+        publication_key VARCHAR(128) NOT NULL,
+        claimed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_claimed_ht_team_key ON facebook_claimed_ht_matches(team_key);
 
       CREATE INDEX IF NOT EXISTS idx_fb_pending_status ON facebook_pending_publication(status);
       CREATE INDEX IF NOT EXISTS idx_fb_pending_type ON facebook_pending_publication(publication_type);
@@ -891,6 +919,97 @@ class DatabaseManager {
     return count;
   }
 
+  async getPendingPublicationById(id: string): Promise<FacebookPendingPublication | null> {
+    if (this.isPostgres && this.pgPool) {
+      try {
+        const res = await this.pgPool.query('SELECT * FROM facebook_pending_publication WHERE id = $1', [id]);
+        if (res.rows.length === 0) return null;
+        const r = res.rows[0];
+        return {
+          id: r.id,
+          publicationType: r.publication_type as FacebookPublicationType,
+          content: r.content,
+          contentHash: r.content_hash,
+          status: r.status,
+          createdAt: new Date(r.created_at).toISOString(),
+          updatedAt: new Date(r.updated_at).toISOString(),
+          attemptCount: Number(r.attempt_count) || 0,
+          lastError: r.last_error || undefined,
+          availableAt: new Date(r.available_at).toISOString(),
+          metadata: r.metadata || undefined,
+        };
+      } catch (err) {
+        console.warn('[DB] Error querying pending publication by ID in Postgres:', (err as Error).message);
+      }
+    }
+    return (this.localData.pendingPublications || []).find(p => p.id === id) || null;
+  }
+
+  async getBlockedPublications(): Promise<FacebookPendingPublication[]> {
+    if (this.isPostgres && this.pgPool) {
+      try {
+        const res = await this.pgPool.query(
+          "SELECT * FROM facebook_pending_publication WHERE status = 'BLOCKED' ORDER BY updated_at DESC"
+        );
+        return res.rows.map(r => ({
+          id: r.id,
+          publicationType: r.publication_type as FacebookPublicationType,
+          content: r.content,
+          contentHash: r.content_hash,
+          status: r.status,
+          createdAt: new Date(r.created_at).toISOString(),
+          updatedAt: new Date(r.updated_at).toISOString(),
+          attemptCount: Number(r.attempt_count) || 0,
+          lastError: r.last_error || undefined,
+          availableAt: new Date(r.available_at).toISOString(),
+          metadata: r.metadata || undefined,
+        }));
+      } catch (err) {
+        console.warn('[DB] Error querying blocked publications in Postgres:', (err as Error).message);
+      }
+    }
+    return (this.localData.pendingPublications || []).filter(p => p.status === 'BLOCKED');
+  }
+
+  async findPendingOrBlockedPublication(keyOrId: string, contentHash?: string): Promise<FacebookPendingPublication | null> {
+    if (this.isPostgres && this.pgPool) {
+      try {
+        let query = "SELECT * FROM facebook_pending_publication WHERE (id = $1";
+        const params: any[] = [keyOrId];
+        if (contentHash) {
+          query += " OR content_hash = $2";
+          params.push(contentHash);
+        }
+        query += ") AND status IN ('PENDING', 'BLOCKED', 'PUBLISHING') LIMIT 1";
+        const res = await this.pgPool.query(query, params);
+        if (res.rows.length === 0) return null;
+        const r = res.rows[0];
+        return {
+          id: r.id,
+          publicationType: r.publication_type as FacebookPublicationType,
+          content: r.content,
+          contentHash: r.content_hash,
+          status: r.status,
+          createdAt: new Date(r.created_at).toISOString(),
+          updatedAt: new Date(r.updated_at).toISOString(),
+          attemptCount: Number(r.attempt_count) || 0,
+          lastError: r.last_error || undefined,
+          availableAt: new Date(r.available_at).toISOString(),
+          metadata: r.metadata || undefined,
+        };
+      } catch (err) {
+        console.warn('[DB] Error finding pending or blocked publication in Postgres:', (err as Error).message);
+      }
+    }
+    return (
+      (this.localData.pendingPublications || []).find(
+        p =>
+          (p.id === keyOrId || (contentHash && p.contentHash === contentHash)) &&
+          (p.status === 'PENDING' || p.status === 'BLOCKED' || (p.status as any) === 'PUBLISHING')
+      ) || null
+    );
+  }
+
   // ==========================================
   // Distributed Cross-Process Master Lock
   // ==========================================
@@ -1164,6 +1283,288 @@ class DatabaseManager {
 
   async clearPublishedHtMatches(): Promise<void> {
     await this.saveSettings('publishedHtMatches', []);
+  }
+
+  // ==========================================
+  // Atomic Match Claiming for Roundups
+  // ==========================================
+
+  async claimFtMatchesForPublication(matches: Match[], publicationKey: string): Promise<Match[]> {
+    if (!matches || matches.length === 0) return [];
+
+    const successfullyClaimed: Match[] = [];
+    const publishedList = await this.getPublishedFtMatches();
+    const publishedMatchIds = new Set(publishedList.map(r => r.matchId));
+    const publishedTeamKeys = new Set(publishedList.map(r => r.teamKey).filter(Boolean));
+
+    if (this.isPostgres && this.pgPool) {
+      const client = await this.pgPool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const m of matches) {
+          const home = m.homeTeam?.name || '';
+          const away = m.awayTeam?.name || '';
+          const cleanHome = home.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const cleanAway = away.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const teamKey = `${cleanHome}_vs_${cleanAway}`;
+
+          if (publishedMatchIds.has(m.id) || (teamKey && publishedTeamKeys.has(teamKey))) {
+            continue;
+          }
+
+          const res = await client.query(
+            `INSERT INTO facebook_claimed_ft_matches (
+               match_id, team_key, home_team, away_team, league_name, score, publication_key, claimed_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+             ON CONFLICT (match_id) DO NOTHING
+             RETURNING match_id`,
+            [m.id, teamKey, home, away, m.league?.name || '', `${m.homeScore ?? 0} - ${m.awayScore ?? 0}`, publicationKey]
+          );
+
+          if (res.rows.length > 0) {
+            successfullyClaimed.push(m);
+          }
+        }
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.warn('[DB] Error claiming FT matches in Postgres:', (err as Error).message);
+      } finally {
+        client.release();
+      }
+    } else {
+      if (!this.localData.claimedFtMatches) {
+        this.localData.claimedFtMatches = [];
+      }
+      const claimedIds = new Set(this.localData.claimedFtMatches.map((c: any) => c.matchId));
+      const claimedKeys = new Set(this.localData.claimedFtMatches.map((c: any) => c.teamKey));
+
+      for (const m of matches) {
+        const home = m.homeTeam?.name || '';
+        const away = m.awayTeam?.name || '';
+        const cleanHome = home.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanAway = away.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const teamKey = `${cleanHome}_vs_${cleanAway}`;
+
+        if (publishedMatchIds.has(m.id) || (teamKey && publishedTeamKeys.has(teamKey))) {
+          continue;
+        }
+        if (claimedIds.has(m.id) || (teamKey && claimedKeys.has(teamKey))) {
+          continue;
+        }
+
+        this.localData.claimedFtMatches.push({
+          matchId: m.id,
+          teamKey,
+          homeTeam: home,
+          awayTeam: away,
+          leagueName: m.league?.name || '',
+          score: `${m.homeScore ?? 0} - ${m.awayScore ?? 0}`,
+          publicationKey,
+          claimedAt: new Date().toISOString(),
+        });
+        successfullyClaimed.push(m);
+      }
+      this.saveLocalData();
+    }
+
+    return successfullyClaimed;
+  }
+
+  async claimHtMatchesForPublication(matches: Match[], publicationKey: string): Promise<Match[]> {
+    if (!matches || matches.length === 0) return [];
+
+    const successfullyClaimed: Match[] = [];
+    const publishedList = await this.getPublishedHtMatches();
+    const publishedMatchIds = new Set(publishedList.map(r => r.matchId));
+    const publishedTeamKeys = new Set(publishedList.map(r => r.teamKey).filter(Boolean));
+
+    if (this.isPostgres && this.pgPool) {
+      const client = await this.pgPool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const m of matches) {
+          const home = m.homeTeam?.name || '';
+          const away = m.awayTeam?.name || '';
+          const cleanHome = home.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const cleanAway = away.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const teamKey = `${cleanHome}_vs_${cleanAway}`;
+
+          if (publishedMatchIds.has(m.id) || (teamKey && publishedTeamKeys.has(teamKey))) {
+            continue;
+          }
+
+          const res = await client.query(
+            `INSERT INTO facebook_claimed_ht_matches (
+               match_id, team_key, home_team, away_team, league_name, score, publication_key, claimed_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+             ON CONFLICT (match_id) DO NOTHING
+             RETURNING match_id`,
+            [m.id, teamKey, home, away, m.league?.name || '', `${m.homeScore ?? 0} - ${m.awayScore ?? 0}`, publicationKey]
+          );
+
+          if (res.rows.length > 0) {
+            successfullyClaimed.push(m);
+          }
+        }
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.warn('[DB] Error claiming HT matches in Postgres:', (err as Error).message);
+      } finally {
+        client.release();
+      }
+    } else {
+      if (!this.localData.claimedHtMatches) {
+        this.localData.claimedHtMatches = [];
+      }
+      const claimedIds = new Set(this.localData.claimedHtMatches.map((c: any) => c.matchId));
+      const claimedKeys = new Set(this.localData.claimedHtMatches.map((c: any) => c.teamKey));
+
+      for (const m of matches) {
+        const home = m.homeTeam?.name || '';
+        const away = m.awayTeam?.name || '';
+        const cleanHome = home.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanAway = away.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const teamKey = `${cleanHome}_vs_${cleanAway}`;
+
+        if (publishedMatchIds.has(m.id) || (teamKey && publishedTeamKeys.has(teamKey))) {
+          continue;
+        }
+        if (claimedIds.has(m.id) || (teamKey && claimedKeys.has(teamKey))) {
+          continue;
+        }
+
+        this.localData.claimedHtMatches.push({
+          matchId: m.id,
+          teamKey,
+          homeTeam: home,
+          awayTeam: away,
+          leagueName: m.league?.name || '',
+          score: `${m.homeScore ?? 0} - ${m.awayScore ?? 0}`,
+          publicationKey,
+          claimedAt: new Date().toISOString(),
+        });
+        successfullyClaimed.push(m);
+      }
+      this.saveLocalData();
+    }
+
+    return successfullyClaimed;
+  }
+
+  async markClaimedFtMatchesPublished(publicationKey: string): Promise<void> {
+    if (this.isPostgres && this.pgPool) {
+      try {
+        const res = await this.pgPool.query(
+          'SELECT * FROM facebook_claimed_ft_matches WHERE publication_key = $1',
+          [publicationKey]
+        );
+        if (res.rows.length > 0) {
+          const matchesToMark: Match[] = res.rows.map(r => ({
+            id: r.match_id,
+            homeTeam: { id: '', name: r.home_team },
+            awayTeam: { id: '', name: r.away_team },
+            league: { id: '', name: r.league_name, country: '' },
+            homeScore: 0,
+            awayScore: 0,
+            status: 'FINISHED',
+            statusText: 'FT',
+            provider: 'flashscore',
+            startTime: '',
+            lastUpdated: '',
+          }));
+          await this.markFtMatchesPublished(matchesToMark);
+        }
+      } catch (err) {
+        console.warn('[DB] Error transferring claimed FT matches to published:', (err as Error).message);
+      }
+    } else {
+      if (this.localData.claimedFtMatches) {
+        const claimed = this.localData.claimedFtMatches.filter((c: any) => c.publicationKey === publicationKey);
+        if (claimed.length > 0) {
+          const matchesToMark: Match[] = claimed.map((r: any) => ({
+            id: r.matchId,
+            homeTeam: { id: '', name: r.homeTeam },
+            awayTeam: { id: '', name: r.awayTeam },
+            league: { id: '', name: r.leagueName, country: '' },
+            homeScore: 0,
+            awayScore: 0,
+            status: 'FINISHED',
+            statusText: 'FT',
+            provider: 'flashscore',
+            startTime: '',
+            lastUpdated: '',
+          }));
+          await this.markFtMatchesPublished(matchesToMark);
+        }
+      }
+    }
+  }
+
+  async markClaimedHtMatchesPublished(publicationKey: string): Promise<void> {
+    if (this.isPostgres && this.pgPool) {
+      try {
+        const res = await this.pgPool.query(
+          'SELECT * FROM facebook_claimed_ht_matches WHERE publication_key = $1',
+          [publicationKey]
+        );
+        if (res.rows.length > 0) {
+          const matchesToMark: Match[] = res.rows.map(r => ({
+            id: r.match_id,
+            homeTeam: { id: '', name: r.home_team },
+            awayTeam: { id: '', name: r.away_team },
+            league: { id: '', name: r.league_name, country: '' },
+            homeScore: 0,
+            awayScore: 0,
+            status: 'PAUSED',
+            statusText: 'HT',
+            provider: 'flashscore',
+            startTime: '',
+            lastUpdated: '',
+          }));
+          await this.markHtMatchesPublished(matchesToMark);
+        }
+      } catch (err) {
+        console.warn('[DB] Error transferring claimed HT matches to published:', (err as Error).message);
+      }
+    } else {
+      if (this.localData.claimedHtMatches) {
+        const claimed = this.localData.claimedHtMatches.filter((c: any) => c.publicationKey === publicationKey);
+        if (claimed.length > 0) {
+          const matchesToMark: Match[] = claimed.map((r: any) => ({
+            id: r.matchId,
+            homeTeam: { id: '', name: r.homeTeam },
+            awayTeam: { id: '', name: r.awayTeam },
+            league: { id: '', name: r.leagueName, country: '' },
+            homeScore: 0,
+            awayScore: 0,
+            status: 'PAUSED',
+            statusText: 'HT',
+            provider: 'flashscore',
+            startTime: '',
+            lastUpdated: '',
+          }));
+          await this.markHtMatchesPublished(matchesToMark);
+        }
+      }
+    }
+  }
+
+  async clearClaimedMatches(): Promise<void> {
+    if (this.isPostgres && this.pgPool) {
+      try {
+        await this.pgPool.query('DELETE FROM facebook_claimed_ft_matches');
+        await this.pgPool.query('DELETE FROM facebook_claimed_ht_matches');
+      } catch (err) {
+        console.warn('[DB] Error clearing claimed matches in Postgres:', (err as Error).message);
+      }
+    }
+    if (this.localData) {
+      this.localData.claimedFtMatches = [];
+      this.localData.claimedHtMatches = [];
+      this.saveLocalData();
+    }
   }
 
   async getApiKeys(): Promise<ApiKeyRecord[]> {

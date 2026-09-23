@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS facebook_publisher_state (
     last_facebook_post_id VARCHAR(128),
     last_published_content_hash VARCHAR(64),
     pending_content_hash VARCHAR(64),
-    blocked_content_hash VARCHAR(64);
+    blocked_content_hash VARCHAR(64),
     blocked_content_hash VARCHAR(64),
     consecutive_meta_blocks INT NOT NULL DEFAULT 0,
     total_meta_blocks INT NOT NULL DEFAULT 0,

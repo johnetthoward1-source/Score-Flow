@@ -22,6 +22,7 @@ type BroadcastCallback = (type: string, payload: any) => void;
 
 class SportsSyncEngine {
   private isRunning = false;
+  private syncInProgress = false;
   private timer: NodeJS.Timeout | null = null;
   private previousMatches: Map<string, Match> = new Map();
   private broadcastFn: BroadcastCallback | null = null;
@@ -79,6 +80,13 @@ class SportsSyncEngine {
    * Syncs live matches from Scrapling / Flashscore engine
    */
   async syncLiveMatches(): Promise<Match[]> {
+    // Do not allow a slow scrape/publish cycle to overlap the next interval.
+    // Overlapping cycles can enqueue the same roundup before its published marker is written.
+    if (this.syncInProgress) {
+      console.log('[SyncEngine] Skipping overlapping sync tick. Previous sync is still running.');
+      return Array.from(this.previousMatches.values());
+    }
+    this.syncInProgress = true;
     try {
       const incomingMatches: Match[] = await flashscoreClient.getLiveMatches();
       this.lastScrapeTime = new Date().toISOString();
@@ -130,6 +138,8 @@ class SportsSyncEngine {
       this.lastError = err.message || 'Unknown scrape error';
       console.warn(`[SyncEngine] Live sync warning: ${this.lastError}`);
       throw err;
+    } finally {
+      this.syncInProgress = false;
     }
   }
 

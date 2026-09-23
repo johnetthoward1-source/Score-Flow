@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Match, MatchEvent, FacebookPageConfig } from '../types.js';
 import { db, getTodayDateString } from '../db/index.js';
 import { cache } from '../cache/redis.js';
@@ -22,7 +23,7 @@ type BroadcastCallback = (type: string, payload: any) => void;
 
 class SportsSyncEngine {
   private isRunning = false;
-  private syncInProgress = false;
+  private isSyncing = false;
   private timer: NodeJS.Timeout | null = null;
   private previousMatches: Map<string, Match> = new Map();
   private broadcastFn: BroadcastCallback | null = null;
@@ -80,13 +81,13 @@ class SportsSyncEngine {
    * Syncs live matches from Scrapling / Flashscore engine
    */
   async syncLiveMatches(): Promise<Match[]> {
-    // Do not allow a slow scrape/publish cycle to overlap the next interval.
-    // Overlapping cycles can enqueue the same roundup before its published marker is written.
-    if (this.syncInProgress) {
-      console.log('[SyncEngine] Skipping overlapping sync tick. Previous sync is still running.');
+    // Explicit synchronization guard (mutex) to prevent overlapping executions
+    if (this.isSyncing) {
+      console.log('[SyncEngine] Skipping sync cycle - previous syncLiveMatches is still in progress');
       return Array.from(this.previousMatches.values());
     }
-    this.syncInProgress = true;
+
+    this.isSyncing = true;
     try {
       const incomingMatches: Match[] = await flashscoreClient.getLiveMatches();
       this.lastScrapeTime = new Date().toISOString();
@@ -139,7 +140,7 @@ class SportsSyncEngine {
       console.warn(`[SyncEngine] Live sync warning: ${this.lastError}`);
       throw err;
     } finally {
-      this.syncInProgress = false;
+      this.isSyncing = false;
     }
   }
 
@@ -489,34 +490,48 @@ class SportsSyncEngine {
         return false;
       }
 
-      console.log(`[SyncCoordinator] Found ${unpublished.length} newly finished match(es). Grouping into Full-Time Results post...`);
+      // Build deterministic logical identity based on the sorted match IDs
+      const sortedMatchIds = unpublished.map(m => m.id).sort();
+      const matchBatchHash = crypto.createHash('sha256').update(sortedMatchIds.join(',')).digest('hex').substring(0, 16);
+      const deterministicId = `roundup_ft_${matchBatchHash}`;
+
+      // ATOMIC CLAIM: Atomically claim matches in DB to prevent duplicate job generation from overlapping sync cycles
+      const claimedMatches = await db.claimFtMatchesForPublication(unpublished, deterministicId);
+      if (claimedMatches.length === 0) {
+        console.log(`[SyncCoordinator] All ${unpublished.length} newly finished match(es) already claimed by active publication.`);
+        return false;
+      }
+
+      console.log(`[SyncCoordinator] Found ${claimedMatches.length} newly finished match(es). Grouping into Full-Time Results post [${deterministicId}]...`);
 
       // Optionally enrich with stats if enabled
       if (fbConfig.includeStatsInFullTime) {
-        await this.enrichMatchesWithStats(unpublished.slice(0, 15));
+        await this.enrichMatchesWithStats(claimedMatches.slice(0, 15));
       }
 
-      const message = formatResultsRoundupPost(unpublished, fbConfig);
+      const message = formatResultsRoundupPost(claimedMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'FULL_TIME',
         message,
-        matchId: `results_roundup_${Date.now()}`,
-        matchTitle: `Full-Time Results (${unpublished.length} Matches)`,
+        matchId: deterministicId,
+        idempotencyKey: deterministicId,
+        matchTitle: `Full-Time Results (${claimedMatches.length} Matches)`,
         leagueName: 'Multiple Leagues',
         metadata: {
-          matchCount: unpublished.length,
-          leagueNames: Array.from(new Set(unpublished.map(m => m.league?.name).filter(Boolean))),
+          matchCount: claimedMatches.length,
+          matchIds: claimedMatches.map(m => m.id),
+          leagueNames: Array.from(new Set(claimedMatches.map(m => m.league?.name).filter(Boolean))),
         },
       });
 
       if (!pubRes.blocked) {
         // Mark these matches and teams as published immediately so they are NEVER repeated!
-        await db.markFtMatchesPublished(unpublished);
+        await db.markFtMatchesPublished(claimedMatches);
 
         fbConfig.lastFtRoundupPublishedAt = new Date().toISOString();
         await db.saveSettings('fbConfig', fbConfig);
-        console.log(`[SyncCoordinator] Successfully enqueued grouped FT post and marked ${unpublished.length} match(es) as published.`);
+        console.log(`[SyncCoordinator] Successfully enqueued grouped FT post [${deterministicId}] and marked ${claimedMatches.length} match(es) as published.`);
         return true;
       }
       return false;
@@ -561,32 +576,46 @@ class SportsSyncEngine {
         return false;
       }
 
-      console.log(`[SyncCoordinator] Found ${unpublished.length} newly reached Half-Time match(es). Grouping into Half-Time Scores post...`);
+      // Build deterministic logical identity based on the sorted match IDs
+      const sortedMatchIds = unpublished.map(m => m.id).sort();
+      const matchBatchHash = crypto.createHash('sha256').update(sortedMatchIds.join(',')).digest('hex').substring(0, 16);
+      const deterministicId = `roundup_ht_${matchBatchHash}`;
+
+      // ATOMIC CLAIM: Atomically claim matches in DB to prevent duplicate job generation from overlapping sync cycles
+      const claimedMatches = await db.claimHtMatchesForPublication(unpublished, deterministicId);
+      if (claimedMatches.length === 0) {
+        console.log(`[SyncCoordinator] All ${unpublished.length} half-time match(es) already claimed by active publication.`);
+        return false;
+      }
+
+      console.log(`[SyncCoordinator] Found ${claimedMatches.length} newly reached Half-Time match(es). Grouping into Half-Time Scores post [${deterministicId}]...`);
 
       // Enrich with stats if available
-      await this.enrichMatchesWithStats(unpublished.slice(0, 15));
+      await this.enrichMatchesWithStats(claimedMatches.slice(0, 15));
 
-      const message = formatHalfTimeRoundupPost(unpublished, fbConfig);
+      const message = formatHalfTimeRoundupPost(claimedMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'HALF_TIME',
         message,
-        matchId: `halftime_roundup_${Date.now()}`,
-        matchTitle: `Half-Time Scores (${unpublished.length} Matches)`,
+        matchId: deterministicId,
+        idempotencyKey: deterministicId,
+        matchTitle: `Half-Time Scores (${claimedMatches.length} Matches)`,
         leagueName: 'Multiple Leagues',
         metadata: {
-          matchCount: unpublished.length,
-          leagueNames: Array.from(new Set(unpublished.map(m => m.league?.name).filter(Boolean))),
+          matchCount: claimedMatches.length,
+          matchIds: claimedMatches.map(m => m.id),
+          leagueNames: Array.from(new Set(claimedMatches.map(m => m.league?.name).filter(Boolean))),
         },
       });
 
       if (!pubRes.blocked) {
         // Mark these matches and teams as published immediately so they are NEVER repeated!
-        await db.markHtMatchesPublished(unpublished);
+        await db.markHtMatchesPublished(claimedMatches);
 
         fbConfig.lastHtRoundupPublishedAt = new Date().toISOString();
         await db.saveSettings('fbConfig', fbConfig);
-        console.log(`[SyncCoordinator] Successfully enqueued grouped Half-Time post and marked ${unpublished.length} match(es) as published.`);
+        console.log(`[SyncCoordinator] Successfully enqueued grouped Half-Time post [${deterministicId}] and marked ${claimedMatches.length} match(es) as published.`);
         return true;
       }
       return false;
@@ -652,6 +681,7 @@ class SportsSyncEngine {
         type: 'LIVE',
         message,
         matchId: 'roundup_live',
+        idempotencyKey: 'roundup_live',
         matchTitle: `Live Scoreboard Roundup (${activeMatches.length} Matches)`,
         leagueName: 'Multiple Leagues',
         metadata: {

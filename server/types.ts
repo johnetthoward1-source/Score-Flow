@@ -207,18 +207,13 @@ export interface FacebookPendingPublication {
   publicationType: FacebookPublicationType;
   content: string;
   contentHash: string;
-  status: 'PENDING' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED' | 'BLOCKED' | 'SKIPPED';
+  status: 'PENDING' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED' | 'SKIPPED' | 'BLOCKED' | 'QUARANTINED';
   createdAt: string;
   updatedAt: string;
   attemptCount: number;
   lastError?: string;
   availableAt: string;
-  metadata?: {
-    matchCount?: number;
-    leagueNames?: string[];
-    customTitle?: string;
-    publicationKey?: string;
-  };
+  metadata?: Record<string, any>;
 }
 
 export interface FacebookPublisherLock {

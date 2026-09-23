@@ -1194,15 +1194,19 @@ async function startServer() {
     }
   });
 
-  // Facebook: Reset Anti-Spam / Rate-Limit Warnings
+  // Facebook: Reset Anti-Spam / Rate-Limit Warnings & Force Resume
   app.post('/api/facebook/reset-cooldown', async (req, res) => {
-    await facebookPublisher.acknowledgeWarnings();
-    const status = await facebookPublisher.getDashboardStatus();
-    res.json({
-      success: true,
-      message: 'Acknowledged Facebook anti-spam warnings. Active Meta cooldowns remain enforced.',
-      status,
-    });
+    try {
+      await facebookPublisher.forceResetCooldown();
+      const status = await facebookPublisher.getDashboardStatus();
+      res.json({
+        success: true,
+        message: 'Publisher cooldown cleared and queue reset. Publishing resumed.',
+        status,
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
   });
 
   // Facebook: Get Detailed Queue & Publisher Status
@@ -1942,14 +1946,14 @@ async function startServer() {
     }
   });
 
-  // Facebook: Dismiss anti-spam warnings (Does NOT bypass active Meta cooldown)
+  // Facebook: Dismiss anti-spam warnings and reset cooldown
   app.post('/api/facebook/dismiss-anti-spam', adminAuthMiddleware, async (req, res) => {
     try {
-      await facebookPublisher.acknowledgeWarnings();
+      await facebookPublisher.forceResetCooldown();
       const publisherStatus = await facebookPublisher.getDashboardStatus();
       res.json({
         success: true,
-        message: 'Dismissed anti-spam notification. Active Meta cooldowns remain enforced to protect Page reputation.',
+        message: 'Dismissed anti-spam notification, cleared cooldown, and resumed publisher.',
         publisherStatus,
       });
     } catch (e: any) {

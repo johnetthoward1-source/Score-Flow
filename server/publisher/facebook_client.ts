@@ -16,6 +16,7 @@ export interface PublishResult {
   errorSubcode?: number;
   rateLimited?: boolean;
   isSpamBlocked?: boolean;
+  isVelocityBlock?: boolean;
   cooldownSeconds?: number;
 }
 
@@ -230,17 +231,21 @@ export class FacebookGraphClient {
         const subcode = err.error_subcode || err.error_data?.error_subcode;
         const msg = String(err.message || '');
 
-        // Detect Meta spam velocity limits and action blocking
-        const isSpamBlocked =
-          subcode === 1390008 ||
-          code === 368 ||
-          msg.includes('limit how often') ||
-          msg.includes('protect the community from spam') ||
-          msg.includes('temporarily blocked');
+        // Specifically detect Meta velocity block (Error 368 + Subcode 1390008)
+        const isVelocityBlock = code === 368 && subcode === 1390008;
+
+        // Detect other action or spam blocking (e.g. code 368 without subcode 1390008)
+        const isGeneralSpamBlock =
+          !isVelocityBlock &&
+          (code === 368 ||
+           msg.includes('limit how often') ||
+           msg.includes('protect the community from spam') ||
+           msg.includes('temporarily blocked'));
 
         // Detect API quota and request rate limits
         const isRateLimit =
-          isSpamBlocked ||
+          isVelocityBlock ||
+          isGeneralSpamBlock ||
           code === 4 ||
           code === 17 ||
           code === 32 ||
@@ -249,23 +254,27 @@ export class FacebookGraphClient {
           msg.toLowerCase().includes('calls to this api have exceeded');
 
         let cooldownSeconds = 0;
-        if (isSpamBlocked) {
+        if (isVelocityBlock) {
           // Meta anti-spam velocity limiter (1390008) requires 10+ minutes of complete rest to clear safely
-          cooldownSeconds = 600;
+          cooldownSeconds = config.fbInitialCooldownSeconds || 600;
+        } else if (isGeneralSpamBlock) {
+          cooldownSeconds = 300;
         } else if (isRateLimit) {
           cooldownSeconds = 120;
         }
 
         let userFriendlyError = msg || `Meta Graph API error ${response.status}`;
-        if (isSpamBlocked) {
+        if (isVelocityBlock) {
           userFriendlyError = `Meta Anti-Spam Velocity Block (Error 1390008): Facebook temporarily blocked publishing to protect against spam velocity. The queue is safely paused for ${Math.round(cooldownSeconds / 60)} minutes to protect Page reputation.`;
+        } else if (isGeneralSpamBlock) {
+          userFriendlyError = `Meta Action Blocked (Code 368): Facebook temporarily blocked this action (${msg || 'restricted'}).`;
         } else if (code === 190) {
           userFriendlyError = `Meta Token Expired (Code 190): Your Page Access Token has expired or was revoked. Please generate and save a fresh token in Facebook Publisher settings.`;
         } else if (code === 200) {
           userFriendlyError = `Meta Permission Error (Code 200): Token does not have permission to publish posts as this Page (missing 'pages_manage_posts').`;
         }
 
-        console.log(`[FB Graph API Throttled] Code ${code || response.status}, Subcode ${subcode || 'none'} (${isSpamBlocked ? 'Spam Velocity Cooldown' : isRateLimit ? 'Rate Limited' : 'API Error'}): ${msg}`);
+        console.log(`[FB Graph API Throttled] Code ${code || response.status}, Subcode ${subcode || 'none'} (${isVelocityBlock ? 'Meta 1390008 Velocity Block' : isGeneralSpamBlock ? 'Spam/Action Block' : isRateLimit ? 'Rate Limited' : 'API Error'}): ${msg}`);
 
         return {
           success: false,
@@ -273,7 +282,8 @@ export class FacebookGraphClient {
           errorCode: code,
           errorSubcode: subcode,
           rateLimited: isRateLimit,
-          isSpamBlocked,
+          isSpamBlocked: isVelocityBlock || isGeneralSpamBlock,
+          isVelocityBlock,
           cooldownSeconds,
         };
       }

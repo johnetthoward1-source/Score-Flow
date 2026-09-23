@@ -706,7 +706,7 @@ class DatabaseManager {
             last_facebook_post_id = EXCLUDED.last_facebook_post_id,
             last_published_content_hash = EXCLUDED.last_published_content_hash,
             pending_content_hash = EXCLUDED.pending_content_hash,
-            blocked_content_hash,
+            blocked_content_hash = EXCLUDED.blocked_content_hash,
             consecutive_meta_blocks = EXCLUDED.consecutive_meta_blocks,
             total_meta_blocks = EXCLUDED.total_meta_blocks,
             last_error_code = EXCLUDED.last_error_code,

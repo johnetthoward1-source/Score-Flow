@@ -297,6 +297,7 @@ class DatabaseManager {
         last_facebook_post_id VARCHAR(128),
         last_published_content_hash VARCHAR(64),
         pending_content_hash VARCHAR(64),
+        blocked_content_hash VARCHAR(64),
         consecutive_meta_blocks INT NOT NULL DEFAULT 0,
         total_meta_blocks INT NOT NULL DEFAULT 0,
         last_error_code INT,
@@ -362,6 +363,7 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_fb_pending_type ON facebook_pending_publication(publication_type);
     `;
     await this.pgPool.query(schemaSql);
+    await this.pgPool.query('ALTER TABLE facebook_publisher_state ADD COLUMN IF NOT EXISTS blocked_content_hash VARCHAR(64)');
   }
 
   async saveMatches(matches: Match[]): Promise<void> {
@@ -686,6 +688,7 @@ class DatabaseManager {
           lastFacebookPostId: r.last_facebook_post_id || undefined,
           lastPublishedContentHash: r.last_published_content_hash || undefined,
           pendingContentHash: r.pending_content_hash || undefined,
+          blockedContentHash: r.blocked_content_hash || undefined,
           consecutiveMetaBlocks: Number(r.consecutive_meta_blocks) || 0,
           totalMetaBlocks: Number(r.total_meta_blocks) || 0,
           lastErrorCode: r.last_error_code ? Number(r.last_error_code) : undefined,
@@ -719,9 +722,9 @@ class DatabaseManager {
             id, publishing_enabled, publishing_paused, pause_reason,
             cooldown_until, cooldown_reason, last_attempt_at, last_publish_at,
             last_successful_publish_at, last_facebook_post_id, last_published_content_hash,
-            pending_content_hash, consecutive_meta_blocks, total_meta_blocks,
+            pending_content_hash, blocked_content_hash, consecutive_meta_blocks, total_meta_blocks,
             last_error_code, last_error_message, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
           ON CONFLICT (id) DO UPDATE SET
             publishing_enabled = EXCLUDED.publishing_enabled,
             publishing_paused = EXCLUDED.publishing_paused,
@@ -734,6 +737,7 @@ class DatabaseManager {
             last_facebook_post_id = EXCLUDED.last_facebook_post_id,
             last_published_content_hash = EXCLUDED.last_published_content_hash,
             pending_content_hash = EXCLUDED.pending_content_hash,
+            blocked_content_hash = EXCLUDED.blocked_content_hash,
             consecutive_meta_blocks = EXCLUDED.consecutive_meta_blocks,
             total_meta_blocks = EXCLUDED.total_meta_blocks,
             last_error_code = EXCLUDED.last_error_code,
@@ -752,6 +756,7 @@ class DatabaseManager {
             updated.lastFacebookPostId || null,
             updated.lastPublishedContentHash || null,
             updated.pendingContentHash || null,
+            updated.blockedContentHash || null,
             updated.consecutiveMetaBlocks,
             updated.totalMetaBlocks,
             updated.lastErrorCode || null,

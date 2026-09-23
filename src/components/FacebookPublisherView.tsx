@@ -1050,15 +1050,15 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
               </div>
               <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
                 {queueMetrics.cooldownReason ||
-                  'Facebook temporarily limits how often actions can be taken. The publisher has paused automatically to protect your Page reputation and will resume with safe spacing.'}
+                  'Meta temporarily limited publishing after Error 368 / Subcode 1390008. The publisher is paused and will not retry the blocked post automatically.'}
               </p>
               <div className="text-[11px] text-amber-300/80 font-mono mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="flex items-center space-x-1">
                   <Clock className="w-3 h-3 text-amber-400" />
-                  <span>Auto-resumes in: <strong className="text-white text-xs">{queueMetrics.cooldownSecondsRemaining}s</strong></span>
+                  <span>Cooldown ends in: <strong className="text-white text-xs">{queueMetrics.cooldownSecondsRemaining}s</strong></span>
                 </span>
                 <span>•</span>
-                <span>Post pacing: 1 post every {queueMetrics.minPostSpacingSeconds || 25}s</span>
+                <span>Safe pacing: 1 post every {queueMetrics.minPostSpacingSeconds || config.minPostSpacingSeconds || 30}s</span>
                 {queueMetrics.queueLength > 0 && (
                   <>
                     <span>•</span>
@@ -1086,7 +1086,7 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
               onClick={handleResetCooldown}
               disabled={isResettingCooldown}
               className="shrink-0 text-xs bg-amber-500/20 hover:bg-amber-500/30 active:bg-amber-500/40 text-amber-200 border border-amber-500/40 px-3 py-2 rounded-lg transition-colors font-medium flex items-center space-x-1.5 self-stretch sm:self-auto justify-center"
-              title="Manually clear the cooldown timer and resume queue"
+              title="Manually clear the cooldown timer. The quarantined blocked post will not be retried automatically."
             >
               <Zap className={`w-3.5 h-3.5 text-amber-400 ${isResettingCooldown ? 'animate-spin' : ''}`} />
               <span>{isResettingCooldown ? 'Resuming...' : 'Force Resume Now'}</span>

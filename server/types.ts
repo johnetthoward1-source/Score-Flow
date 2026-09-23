@@ -192,6 +192,7 @@ export interface FacebookPublisherState {
   lastFacebookPostId?: string;
   lastPublishedContentHash?: string;
   pendingContentHash?: string;
+  blockedContentHash?: string;
   consecutiveMetaBlocks: number;
   totalMetaBlocks: number;
   lastErrorCode?: number;

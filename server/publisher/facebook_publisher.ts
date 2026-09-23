@@ -455,6 +455,7 @@ export class FacebookPublisher {
           lastFacebookPostId: result.postId,
           lastPublishedContentHash: currentHash,
           pendingContentHash: undefined,
+          blockedContentHash: undefined,
           lastErrorCode: undefined,
           lastErrorMessage: undefined,
         });
@@ -641,6 +642,7 @@ export class FacebookPublisher {
       publishingPaused: false,
       cooldownUntil: undefined,
       cooldownReason: undefined,
+      blockedContentHash: undefined,
       consecutiveMetaBlocks: 0,
       lastErrorCode: undefined,
       lastErrorMessage: undefined,

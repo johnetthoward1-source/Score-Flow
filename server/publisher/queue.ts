@@ -29,8 +29,8 @@ class FacebookPublisherQueue {
   }
 
   applySafeMode(_minSpacingSec = 120): void {
-    // Hard minimum 900s is enforced in facebookPublisher
-    console.log('[FB Queue] Safe mode acknowledged. Centralized 15-minute floor active.');
+    // The centralized publisher enforces the configured minimum spacing with a 15-second floor.
+    console.log('[FB Queue] Safe mode acknowledged. Centralized spacing guard is active.');
   }
 
   async enqueue(postData: Omit<FacebookPostRecord, 'id' | 'status' | 'retryCount' | 'createdAt'>): Promise<string> {

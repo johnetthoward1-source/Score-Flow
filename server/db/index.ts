@@ -696,7 +696,7 @@ class DatabaseManager {
             last_successful_publish_at, last_facebook_post_id, last_published_content_hash,
             pending_content_hash, blocked_content_hash, consecutive_meta_blocks, total_meta_blocks,
             last_error_code, last_error_message, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
           ON CONFLICT (id) DO UPDATE SET
             publishing_enabled = EXCLUDED.publishing_enabled,
             publishing_paused = EXCLUDED.publishing_paused,

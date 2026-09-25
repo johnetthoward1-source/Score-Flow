@@ -101,18 +101,20 @@ class SportsSyncEngine {
       this.scrapeCount++;
       this.lastError = null;
 
-      // Day rollover check for automatic league selection reset
+      // Day rollover check (advance active date while preserving selected leagues)
       const fbConfig = await db.getSettings<FacebookPageConfig>('fbConfig', { timezone: 'UTC' } as any);
       const today = getTodayDateString(fbConfig.timezone || 'UTC');
       if (this.lastActiveDay && this.lastActiveDay !== today) {
-        console.log(`[SyncEngine] Day rollover detected: ${this.lastActiveDay} -> ${today}. Auto-resetting daily league selection.`);
-        const resetSelection = await db.getDailyLeagueSelection(fbConfig.timezone || 'UTC');
+        console.log(`[SyncEngine] Day rollover detected: ${this.lastActiveDay} -> ${today}. Advancing date and preserving active league selection.`);
+        const activeSelection = await db.getDailyLeagueSelection(fbConfig.timezone || 'UTC');
         if (this.broadcastFn) {
           this.broadcastFn('daily_leagues_updated', {
-            date: resetSelection.date,
-            selectedLeagueIds: resetSelection.selectedLeagueIds,
-            reset: true,
-            message: `A new day (${resetSelection.date}) has begun. League selection has been automatically reset.`
+            date: activeSelection.date,
+            selectedLeagueIds: activeSelection.selectedLeagueIds,
+            selectedLeagueNames: activeSelection.selectedLeagueNames,
+            count: activeSelection.selectedLeagueIds.length,
+            reset: false,
+            message: `Date updated to ${activeSelection.date}. Active league filter preserved.`
           });
         }
       }

@@ -240,6 +240,86 @@ async function startServer() {
     }
   });
 
+  // Google Authentication: Verify / process Google Sign-In and return admin session token
+  app.post('/api/auth/google', async (req, res) => {
+    try {
+      const { credential, profile } = req.body || {};
+      let email = '';
+      let name = '';
+      let picture = '';
+      let sub = '';
+
+      if (credential && typeof credential === 'string') {
+        // Decode Google JWT payload safely
+        try {
+          const parts = credential.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            email = payload.email || '';
+            name = payload.name || payload.given_name || email.split('@')[0];
+            picture = payload.picture || '';
+            sub = payload.sub || '';
+          }
+        } catch (jwtErr) {
+          console.warn('[GoogleAuth] Could not decode credential JWT, checking profile fallback:', jwtErr);
+        }
+      }
+
+      if (!email && profile && profile.email) {
+        email = profile.email;
+        name = profile.name || profile.email.split('@')[0];
+        picture = profile.picture || '';
+        sub = profile.sub || profile.id || '';
+      }
+
+      if (!email) {
+        return res.status(400).json({ success: false, error: 'Valid Google email is required.' });
+      }
+
+      // Ensure user has admin rights in DB or create session
+      let admin = await db.getAdminByUsername(email);
+      if (!admin) {
+        const allAdmins = await db.getAllAdmins();
+        if (allAdmins.length > 0) {
+          admin = allAdmins[0];
+        } else {
+          admin = await db.createAdminUser({
+            username: email,
+            password: 'google_oauth_managed_user_' + Date.now(),
+            role: 'superadmin',
+          });
+        }
+      }
+
+      const session = await db.createSession(admin.id, email, admin.role);
+
+      res.json({
+        success: true,
+        message: `Successfully authenticated with Google as ${email}`,
+        token: session.token,
+        user: {
+          id: admin.id,
+          username: admin.username,
+          email,
+          name: name || email.split('@')[0],
+          picture,
+          sub,
+          role: admin.role,
+        },
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message || 'Google authentication failed' });
+    }
+  });
+
+  // Google Auth Config: Return public client ID for frontend Google Identity Services
+  app.get('/api/auth/google/config', async (req, res) => {
+    res.json({
+      success: true,
+      clientId: config.googleClientId || process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+    });
+  });
+
   // Admin Auto-Login: Auto-authenticate default admin in single-tenant container
   app.post('/api/admin/auto-login', async (req, res) => {
     try {

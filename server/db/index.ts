@@ -1616,24 +1616,37 @@ class DatabaseManager {
     const today = getTodayDateString(timeZone);
     const stored = await this.getSettings<DailyLeagueSelection | null>('dailyLeagueSelection', null);
 
-    // If no selection stored, or if the date has changed (new day began!):
-    if (!stored || stored.date !== today) {
-      const resetSelection: DailyLeagueSelection = {
+    // If no selection stored, initialize
+    if (!stored) {
+      const initialSelection: DailyLeagueSelection = {
         date: today,
         selectedLeagueIds: [],
         selectedLeagueNames: [],
         allLeaguesSelected: false,
         lastUpdated: new Date().toISOString(),
       };
-      await this.saveSettings('dailyLeagueSelection', resetSelection);
+      await this.saveSettings('dailyLeagueSelection', initialSelection);
+      return initialSelection;
+    }
 
-      // Also reset fbConfig targetLeagueIds so they remain strictly in sync
+    // If the date has advanced to a new day, roll the date forward but PRESERVE user's active league selection!
+    if (stored.date !== today) {
+      const carriedOver: DailyLeagueSelection = {
+        date: today,
+        selectedLeagueIds: Array.isArray(stored.selectedLeagueIds) ? stored.selectedLeagueIds : [],
+        selectedLeagueNames: Array.isArray(stored.selectedLeagueNames) ? stored.selectedLeagueNames : [],
+        allLeaguesSelected: Boolean(stored.allLeaguesSelected),
+        lastUpdated: new Date().toISOString(),
+      };
+      await this.saveSettings('dailyLeagueSelection', carriedOver);
+
+      // Keep fbConfig targetLeagueIds in sync
       const fbConfig = await this.getSettings<FacebookPageConfig | null>('fbConfig', null);
       if (fbConfig) {
-        fbConfig.targetLeagueIds = [];
+        fbConfig.targetLeagueIds = carriedOver.selectedLeagueIds;
         await this.saveSettings('fbConfig', fbConfig);
       }
-      return resetSelection;
+      return carriedOver;
     }
 
     return stored;

@@ -23,6 +23,7 @@ export const config = {
   redisUrl: process.env.REDIS_URL || '',
   
   // Security & Admin Auth
+  googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '',
   apiAdminKey: process.env.API_ADMIN_KEY || '',
   jwtSecret: process.env.JWT_SECRET || 'gamescores_admin_jwt_secret_token_key_2026',
   

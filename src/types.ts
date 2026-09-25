@@ -139,10 +139,6 @@ export interface FacebookPageConfig {
   postTemplateRoundup?: string;
   postTemplateHalfTimeRoundup?: string;
   postTemplateFullTimeRoundup?: string;
-  enableAiPostEnhancement?: boolean;
-  aiProvider?: 'deepseek' | 'gemini';
-  deepseekApiKey?: string;
-  deepseekModel?: string;
   lastVerifiedAt?: string;
 }
 
@@ -261,5 +257,13 @@ export interface AdminSession {
   role: string;
   createdAt: string;
   expiresAt: string;
+}
+
+export interface GoogleUser {
+  email: string;
+  name: string;
+  picture?: string;
+  sub?: string;
+  loginTime: string;
 }
 

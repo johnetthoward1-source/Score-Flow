@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { AdminUser } from '../types';
+import { AdminUser, GoogleUser } from '../types';
 
 export interface DatabaseConnectionInfo {
   isPostgres: boolean;
@@ -10,13 +10,17 @@ export interface DatabaseConnectionInfo {
 
 interface AdminAuthContextType {
   adminUser: AdminUser | null;
+  googleUser: GoogleUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isGoogleAuthenticated: boolean;
   isLoading: boolean;
   databaseInfo: DatabaseConnectionInfo | null;
   totalAdmins: number;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (payload: { credential?: string; profile?: { email: string; name: string; picture?: string; sub?: string } }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  logoutGoogle: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   authFetch: (url: string, options?: RequestInit) => Promise<Response>;
   showLoginModal: boolean;
@@ -27,9 +31,18 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 const TOKEN_STORAGE_KEY = 'gamescores_admin_token';
+const GOOGLE_USER_STORAGE_KEY = 'gamescores_google_user';
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_STORAGE_KEY));
+  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => {
+    try {
+      const stored = localStorage.getItem(GOOGLE_USER_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [databaseInfo, setDatabaseInfo] = useState<DatabaseConnectionInfo | null>(null);
   const [totalAdmins, setTotalAdmins] = useState<number>(0);
@@ -147,6 +160,66 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const loginWithGoogle = async (payload: {
+    credential?: string;
+    profile?: { email: string; name: string; picture?: string; sub?: string };
+  }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Google authentication failed' };
+      }
+
+      const gUser: GoogleUser = {
+        email: data.user.email,
+        name: data.user.name,
+        picture: data.user.picture,
+        sub: data.user.sub,
+        loginTime: new Date().toISOString(),
+      };
+
+      localStorage.setItem(GOOGLE_USER_STORAGE_KEY, JSON.stringify(gUser));
+      setGoogleUser(gUser);
+
+      if (data.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+        setToken(data.token);
+        setAdminUser({
+          id: data.user.id || 'admin_google',
+          username: data.user.email,
+          role: data.user.role || 'superadmin',
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      setShowLoginModal(false);
+      await refreshStatus();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error during Google login' };
+    }
+  };
+
+  const logoutGoogle = async (): Promise<void> => {
+    try {
+      localStorage.removeItem(GOOGLE_USER_STORAGE_KEY);
+      setGoogleUser(null);
+      await logout();
+    } catch {
+      localStorage.removeItem(GOOGLE_USER_STORAGE_KEY);
+      setGoogleUser(null);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      setToken(null);
+      setAdminUser(null);
+    }
+  };
+
   const logout = async (): Promise<void> => {
     try {
       const activeToken = localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -164,8 +237,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.warn('[Auth] Error logging out:', e);
     } finally {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem(GOOGLE_USER_STORAGE_KEY);
       setToken(null);
       setAdminUser(null);
+      setGoogleUser(null);
       await refreshStatus();
     }
   };
@@ -195,13 +270,17 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <AdminAuthContext.Provider
       value={{
         adminUser,
+        googleUser,
         token,
         isAuthenticated: Boolean(adminUser && token),
+        isGoogleAuthenticated: Boolean(googleUser),
         isLoading,
         databaseInfo,
         totalAdmins,
         login,
+        loginWithGoogle,
         logout,
+        logoutGoogle,
         changePassword,
         authFetch,
         showLoginModal,

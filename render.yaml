@@ -3,7 +3,7 @@ services:
     name: sports-scores-publisher
     runtime: node
     plan: 0.5c-512mb
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     maxShutdownDelaySeconds: 60

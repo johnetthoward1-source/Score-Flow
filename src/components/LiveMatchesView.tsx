@@ -9,6 +9,10 @@ import {
   Globe,
   Share2,
   SlidersHorizontal,
+  Square,
+  Play,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { Match } from '../types';
 
@@ -17,6 +21,9 @@ interface LiveMatchesViewProps {
   onSelectMatch: (match: Match) => void;
   onQuickPublish: (match: Match) => void;
   isFbConnected: boolean;
+  isScraperRunning?: boolean;
+  onToggleScraper?: () => void;
+  isScraperToggling?: boolean;
 }
 
 export function getMatchTimeDisplay(m: Match): { minuteStr: string; periodStr: string } {
@@ -86,6 +93,9 @@ export const LiveMatchesView: React.FC<LiveMatchesViewProps> = ({
   onSelectMatch,
   onQuickPublish,
   isFbConnected,
+  isScraperRunning = true,
+  onToggleScraper,
+  isScraperToggling = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string>('ALL');
@@ -124,16 +134,57 @@ export const LiveMatchesView: React.FC<LiveMatchesViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Scrapling Paused Alert Banner */}
+      {!isScraperRunning && (
+        <div className="bg-rose-950/40 border border-rose-800/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-200 shadow-md">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Live Scrapling is Paused</h4>
+              <p className="text-[11px] text-rose-300/80 mt-0.5">
+                Background 30-second live score sync is stopped. Scores are frozen until scrapling is resumed.
+              </p>
+            </div>
+          </div>
+          {onToggleScraper && (
+            <button
+              onClick={onToggleScraper}
+              disabled={isScraperToggling}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer self-start sm:self-auto"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Resume Scrapling Now</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Top Filter & Summary Header */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
             <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              <span
+                className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  isScraperRunning ? 'animate-ping bg-emerald-400' : 'bg-rose-400'
+                }`}
+              ></span>
+              <span
+                className={`relative inline-flex rounded-full h-3 w-3 ${
+                  isScraperRunning ? 'bg-emerald-500' : 'bg-rose-500'
+                }`}
+              ></span>
             </span>
             <h2 className="text-base font-bold text-white">Live Matches In Progress</h2>
-            <span className="bg-emerald-500/20 text-emerald-300 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30">
+            <span
+              className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                isScraperRunning
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+              }`}
+            >
               {matches.length} active
             </span>
           </div>
@@ -142,9 +193,42 @@ export const LiveMatchesView: React.FC<LiveMatchesViewProps> = ({
           </p>
         </div>
 
-        {/* Search & Country Select */}
+        {/* Search, Country Select & Scraper Button */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative min-w-[220px]">
+          {onToggleScraper && (
+            <button
+              id="live-tab-toggle-scrapling-btn"
+              onClick={onToggleScraper}
+              disabled={isScraperToggling}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer active:scale-95 ${
+                isScraperRunning
+                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25 active:bg-rose-500/30'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-md animate-pulse'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={
+                isScraperRunning
+                  ? 'Stop live sports background score scraping'
+                  : 'Resume live sports background score scraping'
+              }
+            >
+              {isScraperToggling ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : isScraperRunning ? (
+                <Square className="w-3.5 h-3.5 fill-current text-rose-400" />
+              ) : (
+                <Play className="w-3.5 h-3.5 fill-current text-white" />
+              )}
+              <span>
+                {isScraperToggling
+                  ? 'Updating...'
+                  : isScraperRunning
+                  ? 'Stop Scrapling'
+                  : 'Resume Scrapling'}
+              </span>
+            </button>
+          )}
+
+          <div className="relative min-w-[200px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"

@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Lock,
   User,
+  Square,
+  Play,
 } from 'lucide-react';
 import { SystemStatus } from '../types';
 import { useAdminAuth } from '../context/AdminAuthContext';
@@ -27,6 +29,8 @@ interface HeaderProps {
   isSyncing: boolean;
   liveMatchCount: number;
   onOpenAdminModal: () => void;
+  onToggleScraper?: () => void;
+  isScraperToggling?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -38,8 +42,11 @@ export const Header: React.FC<HeaderProps> = ({
   isSyncing,
   liveMatchCount,
   onOpenAdminModal,
+  onToggleScraper,
+  isScraperToggling = false,
 }) => {
   const { adminUser, isAuthenticated, databaseInfo } = useAdminAuth();
+  const isScraperRunning = systemStatus?.syncEngine?.isRunning ?? true;
   const scraplingOnline = systemStatus?.scraplingService?.status === 'ONLINE';
   const fbConfigured = Boolean(systemStatus?.facebookPublisher?.config?.pageId);
   const selectedLeaguesCount = systemStatus?.dailyLeagueSelection?.selectedCount ?? 0;
@@ -99,14 +106,27 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Python Scrapling Status */}
             <div
               className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border ${
-                scraplingOnline
+                !isScraperRunning
+                  ? 'bg-rose-950/60 text-rose-300 border-rose-800/60'
+                  : scraplingOnline
                   ? 'bg-blue-950/40 text-blue-300 border-blue-800/40'
-                  : 'bg-rose-950/40 text-rose-300 border-rose-800/40'
+                  : 'bg-amber-950/40 text-amber-300 border-amber-800/40'
               }`}
-              title={`Python Scrapling v${systemStatus?.scraplingService?.scrapling_version || '0.4.15'}`}
+              title={
+                !isScraperRunning
+                  ? 'Scrapling is STOPPED / PAUSED. Click "Resume Scrapling" to start.'
+                  : `Python Scrapling v${systemStatus?.scraplingService?.scrapling_version || '0.4.15'}`
+              }
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>Scrapling: {scraplingOnline ? `${systemStatus?.scraplingService?.latency_ms ?? 25}ms` : 'Offline'}</span>
+              <span>
+                Scrapling:{' '}
+                {!isScraperRunning
+                  ? 'Stopped'
+                  : scraplingOnline
+                  ? `${systemStatus?.scraplingService?.latency_ms ?? 25}ms`
+                  : 'TS Fallback'}
+              </span>
             </div>
 
             {/* Daily Leagues Today Badge */}
@@ -179,10 +199,43 @@ export const Header: React.FC<HeaderProps> = ({
               id="manual-sync-button"
               onClick={onManualSync}
               disabled={isSyncing}
-              className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-medium px-3 py-1.5 rounded-lg transition-all shadow-sm active:scale-95 text-xs"
+              className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:bg-slate-800 disabled:text-slate-500 text-slate-200 font-medium px-3 py-1.5 rounded-lg transition-all shadow-sm active:scale-95 text-xs cursor-pointer"
+              title="Trigger an immediate one-off score sync"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-400' : 'text-slate-400'}`} />
               <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
+            </button>
+
+            {/* Scraper Control (Stop / Resume Scrapling) */}
+            <button
+              id={isScraperRunning ? "stop-scrapling-button" : "resume-scrapling-button"}
+              onClick={onToggleScraper}
+              disabled={isScraperToggling}
+              className={`flex items-center space-x-1.5 font-semibold px-3 py-1.5 rounded-lg transition-all shadow-sm active:scale-95 text-xs cursor-pointer border ${
+                isScraperRunning
+                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25 active:bg-rose-500/30'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-emerald-900/30 shadow-md animate-pulse'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={
+                isScraperRunning
+                  ? 'Click to stop live Flashscore background score scraping'
+                  : 'Click to start/resume live Flashscore background score scraping'
+              }
+            >
+              {isScraperToggling ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : isScraperRunning ? (
+                <Square className="w-3.5 h-3.5 fill-current text-rose-400" />
+              ) : (
+                <Play className="w-3.5 h-3.5 fill-current text-white" />
+              )}
+              <span>
+                {isScraperToggling
+                  ? 'Updating...'
+                  : isScraperRunning
+                  ? 'Stop Scrapling'
+                  : 'Resume Scrapling'}
+              </span>
             </button>
           </div>
         </div>

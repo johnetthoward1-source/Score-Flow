@@ -14,15 +14,7 @@ import { flashscoreClient } from './server/scraper/flashscore_client.js';
 import { publisherQueue } from './server/publisher/queue.js';
 import { facebookPublisher } from './server/publisher/facebook_publisher.js';
 import { fbClient } from './server/publisher/facebook_client.js';
-import {
-  formatLiveRoundupPost,
-  formatResultsRoundupPost,
-  formatHalfTimeRoundupPost,
-  formatLiveRoundupPostAsync,
-  formatResultsRoundupPostAsync,
-  formatHalfTimeRoundupPostAsync,
-} from './server/publisher/templates.js';
-import { generatePostVariationWithAi, isAiGeneratorAvailable } from './server/services/ai_enhancer.js';
+import { formatLiveRoundupPost, formatResultsRoundupPost, formatHalfTimeRoundupPost } from './server/publisher/templates.js';
 import { FacebookPageConfig, Match, DailyLeagueSelection } from './server/types.js';
 
 async function startServer() {
@@ -441,6 +433,75 @@ async function startServer() {
         success: true,
         message: 'Sync completed successfully',
         matchCount: matches.length,
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Scraper Engine: Stop background scraping/polling
+  app.post('/api/system/scraper/stop', adminAuthMiddleware, async (req, res) => {
+    try {
+      sportsSync.stop();
+      broadcast('sync_status_updated', sportsSync.getStatus());
+      res.json({
+        success: true,
+        message: 'Scrapling has been stopped. Background live scraping is paused.',
+        isRunning: false,
+        syncEngine: sportsSync.getStatus(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Scraper Engine: Start / Resume background scraping/polling
+  app.post('/api/system/scraper/start', adminAuthMiddleware, async (req, res) => {
+    try {
+      await sportsSync.start();
+      broadcast('sync_status_updated', sportsSync.getStatus());
+      res.json({
+        success: true,
+        message: 'Scrapling has been resumed. Live score polling is active.',
+        isRunning: true,
+        syncEngine: sportsSync.getStatus(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Scraper Engine: Toggle background scraping/polling
+  app.post('/api/system/scraper/toggle', adminAuthMiddleware, async (req, res) => {
+    try {
+      const current = sportsSync.getStatus().isRunning;
+      if (current) {
+        sportsSync.stop();
+      } else {
+        await sportsSync.start();
+      }
+      const newStatus = sportsSync.getStatus();
+      broadcast('sync_status_updated', newStatus);
+      res.json({
+        success: true,
+        message: newStatus.isRunning
+          ? 'Scrapling resumed. Background live polling active.'
+          : 'Scrapling stopped. Background live polling paused.',
+        isRunning: newStatus.isRunning,
+        syncEngine: newStatus,
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Scraper Engine: Get current scraping status
+  app.get('/api/system/scraper/status', async (req, res) => {
+    try {
+      res.json({
+        success: true,
+        isRunning: sportsSync.getStatus().isRunning,
+        syncEngine: sportsSync.getStatus(),
       });
     } catch (e: any) {
       res.status(500).json({ success: false, error: e.message });
@@ -1265,7 +1326,7 @@ async function startServer() {
       }
 
       const previewText = targetMatches.length > 0
-        ? await formatLiveRoundupPostAsync(targetMatches, fbConfig)
+        ? formatLiveRoundupPost(targetMatches, fbConfig)
         : `⚠️ No leagues are selected for today (${dailySelection.date}).\nPlease select one or more leagues in the League Selection panel to preview or publish games.`;
       res.json({
         success: true,
@@ -1434,7 +1495,7 @@ async function startServer() {
       }
 
       const matchesToPreview = filterPublished ? newMatches : matches;
-      const previewText = await formatResultsRoundupPostAsync(matchesToPreview, fbConfig);
+      const previewText = formatResultsRoundupPost(matchesToPreview, fbConfig);
 
       res.json({
         success: true,
@@ -1674,7 +1735,7 @@ async function startServer() {
       }
 
       const matchesToPreview = filterPublished ? newMatches : matches;
-      const previewText = await formatHalfTimeRoundupPostAsync(matchesToPreview, fbConfig);
+      const previewText = formatHalfTimeRoundupPost(matchesToPreview, fbConfig);
 
       res.json({
         success: true,
@@ -1869,55 +1930,6 @@ async function startServer() {
       });
     } catch (e: any) {
       res.status(500).json({ success: false, error: e.message });
-    }
-  });
-
-  // Facebook: Test DeepSeek / AI connection
-  app.post('/api/facebook/test-ai-connection', adminAuthMiddleware, async (req, res) => {
-    try {
-      const fbConfig = await db.getSettings<FacebookPageConfig>('fbConfig', {
-        pageId: config.fbPageId,
-        isConnected: false,
-        autoPublishEnabled: false,
-      });
-
-      const apiKey = req.body?.deepseekApiKey?.trim() || fbConfig.deepseekApiKey || process.env.DEEPSEEK_API_KEY;
-      const model = req.body?.deepseekModel?.trim() || fbConfig.deepseekModel || 'deepseek-chat';
-
-      if (!apiKey) {
-        return res.status(400).json({
-          success: false,
-          error: 'No DeepSeek API Key provided. Please enter your DeepSeek API Key.',
-        });
-      }
-
-      const variation = await generatePostVariationWithAi({
-        type: 'LIVE',
-        summaryText: 'Premier League: Arsenal 1 - 0 Chelsea (34\')\nLa Liga: Real Madrid 2 - 1 Barcelona (67\')',
-        matchCount: 2,
-        pageName: fbConfig.pageName || 'GameScores',
-        config: {
-          ...fbConfig,
-          aiProvider: 'deepseek',
-          deepseekApiKey: apiKey,
-          deepseekModel: model,
-        },
-      });
-
-      if (!variation) {
-        return res.status(502).json({
-          success: false,
-          error: 'DeepSeek API responded with an error or returned invalid output. Please check your API key and quota at platform.deepseek.com.',
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'DeepSeek AI connected successfully!',
-        sample: variation,
-      });
-    } catch (e: any) {
-      res.status(500).json({ success: false, error: e.message || 'DeepSeek test failed' });
     }
   });
 

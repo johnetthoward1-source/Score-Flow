@@ -146,6 +146,17 @@ function DashboardContent() {
               type: 'info',
             });
             setTimeout(() => setToastNotification(null), 6000);
+          } else if (packet.type === 'sync_status_updated') {
+            setSystemStatus((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                syncEngine: {
+                  ...prev.syncEngine,
+                  ...packet.payload,
+                },
+              };
+            });
           }
         } catch (error) {
           console.warn('[WebSocket] Invalid server message:', error);
@@ -220,6 +231,49 @@ function DashboardContent() {
     }
   };
 
+  const [isScraperToggling, setIsScraperToggling] = useState<boolean>(false);
+
+  // Stop / Resume Scrapling action
+  const handleToggleScraper = async () => {
+    setIsScraperToggling(true);
+    try {
+      const isCurrentlyRunning = systemStatus?.syncEngine?.isRunning ?? true;
+      const endpoint = isCurrentlyRunning ? '/api/system/scraper/stop' : '/api/system/scraper/start';
+      const res = await authFetch(endpoint, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSystemStatus((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            syncEngine: {
+              ...prev.syncEngine,
+              isRunning: data.isRunning,
+            },
+          };
+        });
+        setToastNotification({
+          title: data.isRunning ? '▶ Scrapling Resumed' : '⏹ Scrapling Stopped',
+          body: data.message || (data.isRunning ? 'Live Flashscore polling active' : 'Live Flashscore polling paused'),
+          type: data.isRunning ? 'info' : 'warning',
+        });
+        setTimeout(() => setToastNotification(null), 5000);
+        fetchSystemStatus();
+      } else {
+        setToastNotification({
+          title: 'Action Failed',
+          body: data.error || 'Failed to toggle scraper',
+          type: 'error',
+        });
+        setTimeout(() => setToastNotification(null), 5000);
+      }
+    } catch (e: any) {
+      console.warn('Scraper toggle error:', e);
+    } finally {
+      setIsScraperToggling(false);
+    }
+  };
+
   // Publish to Facebook action
   const handlePublishToFacebook = async (
     match: Match,
@@ -275,6 +329,8 @@ function DashboardContent() {
         isSyncing={isSyncing}
         liveMatchCount={liveMatches.length}
         onOpenAdminModal={() => setShowLoginModal(true)}
+        onToggleScraper={handleToggleScraper}
+        isScraperToggling={isScraperToggling}
       />
 
       {/* Main Content Area */}
@@ -287,6 +343,9 @@ function DashboardContent() {
               setSelectedMatch(m);
             }}
             isFbConnected={isFbConnected}
+            isScraperRunning={systemStatus?.syncEngine?.isRunning ?? true}
+            onToggleScraper={handleToggleScraper}
+            isScraperToggling={isScraperToggling}
           />
         )}
 
@@ -324,6 +383,8 @@ function DashboardContent() {
             status={systemStatus}
             onManualSync={handleManualSync}
             isSyncing={isSyncing}
+            onToggleScraper={handleToggleScraper}
+            isScraperToggling={isScraperToggling}
           />
         )}
       </main>

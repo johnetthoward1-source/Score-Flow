@@ -17,9 +17,6 @@ import {
   formatLiveRoundupPost,
   formatResultsRoundupPost,
   formatHalfTimeRoundupPost,
-  formatLiveRoundupPostAsync,
-  formatResultsRoundupPostAsync,
-  formatHalfTimeRoundupPostAsync,
 } from '../publisher/templates.js';
 
 type BroadcastCallback = (type: string, payload: any) => void;
@@ -44,6 +41,10 @@ class SportsSyncEngine {
     if (this.isRunning) return;
     this.isRunning = true;
     console.log('[SyncEngine] Starting sports sync engine...');
+
+    if (this.broadcastFn) {
+      this.broadcastFn('sync_status_updated', this.getStatus());
+    }
 
     // Load initial matches from database / cache
     try {
@@ -78,6 +79,9 @@ class SportsSyncEngine {
     }
     this.isRunning = false;
     console.log('[SyncEngine] Stopped sports sync engine.');
+    if (this.broadcastFn) {
+      this.broadcastFn('sync_status_updated', this.getStatus());
+    }
   }
 
   /**
@@ -512,7 +516,7 @@ class SportsSyncEngine {
         await this.enrichMatchesWithStats(claimedMatches.slice(0, 15));
       }
 
-      const message = await formatResultsRoundupPostAsync(claimedMatches, fbConfig);
+      const message = formatResultsRoundupPost(claimedMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'FULL_TIME',
@@ -596,7 +600,7 @@ class SportsSyncEngine {
       // Enrich with stats if available
       await this.enrichMatchesWithStats(claimedMatches.slice(0, 15));
 
-      const message = await formatHalfTimeRoundupPostAsync(claimedMatches, fbConfig);
+      const message = formatHalfTimeRoundupPost(claimedMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'HALF_TIME',
@@ -678,7 +682,7 @@ class SportsSyncEngine {
 
       console.log(`[SyncCoordinator] Posting scheduled live scoreboard (${intervalMinutes}m interval, ${activeMatches.length} active matches)...`);
       await this.enrichMatchesWithStats(activeMatches);
-      const message = await formatLiveRoundupPostAsync(activeMatches, fbConfig);
+      const message = formatLiveRoundupPost(activeMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'LIVE',

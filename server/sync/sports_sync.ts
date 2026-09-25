@@ -536,8 +536,9 @@ class SportsSyncEngine {
         // Mark these matches and teams as published immediately so they are NEVER repeated!
         await db.markFtMatchesPublished(claimedMatches);
 
-        fbConfig.lastFtRoundupPublishedAt = new Date().toISOString();
-        await db.saveSettings('fbConfig', fbConfig);
+        const latestCfg = await db.getSettings<FacebookPageConfig>('fbConfig', fbConfig);
+        latestCfg.lastFtRoundupPublishedAt = new Date().toISOString();
+        await db.saveSettings('fbConfig', latestCfg);
         console.log(`[SyncCoordinator] Successfully enqueued grouped FT post [${deterministicId}] and marked ${claimedMatches.length} match(es) as published.`);
         return true;
       }
@@ -620,8 +621,9 @@ class SportsSyncEngine {
         // Mark these matches and teams as published immediately so they are NEVER repeated!
         await db.markHtMatchesPublished(claimedMatches);
 
-        fbConfig.lastHtRoundupPublishedAt = new Date().toISOString();
-        await db.saveSettings('fbConfig', fbConfig);
+        const latestCfg = await db.getSettings<FacebookPageConfig>('fbConfig', fbConfig);
+        latestCfg.lastHtRoundupPublishedAt = new Date().toISOString();
+        await db.saveSettings('fbConfig', latestCfg);
         console.log(`[SyncCoordinator] Successfully enqueued grouped Half-Time post [${deterministicId}] and marked ${claimedMatches.length} match(es) as published.`);
         return true;
       }
@@ -699,8 +701,9 @@ class SportsSyncEngine {
 
       if (!pubRes.blocked) {
         this.lastRoundupFingerprint = currentFingerprint;
-        fbConfig.lastRoundupPublishedAt = new Date().toISOString();
-        await db.saveSettings('fbConfig', fbConfig);
+        const latestCfg = await db.getSettings<FacebookPageConfig>('fbConfig', fbConfig);
+        latestCfg.lastRoundupPublishedAt = new Date().toISOString();
+        await db.saveSettings('fbConfig', latestCfg);
         console.log(`[SyncCoordinator] Scheduled Live Scoreboard post successfully enqueued (${activeMatches.length} matches).`);
         return true;
       }

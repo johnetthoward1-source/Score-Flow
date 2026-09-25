@@ -28,8 +28,6 @@ import {
   Trophy,
   Lock,
   PauseCircle,
-  Bot,
-  Cpu,
 } from 'lucide-react';
 import { FacebookPageConfig, FacebookPostRecord, Match, PublishedFtRecord, PublishedHtRecord, DailyLeagueSelection } from '../types';
 import { DailyLeagueSelectionView } from './DailyLeagueSelectionView';
@@ -135,8 +133,6 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const [isResettingCooldown, setIsResettingCooldown] = useState(false);
   const [isDismissingWarnings, setIsDismissingWarnings] = useState(false);
-  const [isTestingAi, setIsTestingAi] = useState(false);
-  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string; sample?: any } | null>(null);
   const [queueMetrics, setQueueMetrics] = useState<{
     queueLength: number;
     isProcessing: boolean;
@@ -149,6 +145,7 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
   } | null>(null);
 
   const isEditingPageId = useRef(false);
+  const isTogglingAutoPublishRef = useRef(false);
 
   const fetchConfigAndHistory = useCallback(async () => {
     try {
@@ -174,7 +171,13 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       const [cfgResult, postsResult, queueResult, leaguesResult] = results;
 
       if (cfgResult.status === 'fulfilled' && cfgResult.value?.success && cfgResult.value.data) {
-        setConfig((prev) => ({ ...prev, ...cfgResult.value.data }));
+        setConfig((prev) => {
+          // If a toggle is currently in flight, preserve the current toggle state
+          if (isTogglingAutoPublishRef.current) {
+            return { ...prev, ...cfgResult.value.data, autoPublishEnabled: prev.autoPublishEnabled };
+          }
+          return { ...prev, ...cfgResult.value.data };
+        });
         // Only initialize input if user hasn't started typing into it
         if (!isEditingPageId.current) {
           setPageIdInput(cfgResult.value.data.pageId || '');
@@ -677,6 +680,61 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
     }
   };
 
+  const [isTogglingAutoPublish, setIsTogglingAutoPublish] = useState(false);
+
+  // Fast direct toggle for Auto-Publish with instant optimistic state
+  const handleToggleAutoPublish = async () => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      setStatusMessage({
+        type: 'error',
+        text: 'Please sign in with administrator credentials to change automated publishing.',
+      });
+      return;
+    }
+    const nextState = !config.autoPublishEnabled;
+    setIsTogglingAutoPublish(true);
+    isTogglingAutoPublishRef.current = true;
+
+    // Instantly update UI optimistically
+    setConfig((prev) => ({ ...prev, autoPublishEnabled: nextState }));
+    setStatusMessage(null);
+    try {
+      const res = await authFetch('/api/facebook/toggle-auto-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: nextState }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConfig((prev) => ({ ...prev, autoPublishEnabled: data.autoPublishEnabled }));
+        setStatusMessage({
+          type: 'success',
+          text: data.message || `Automated Facebook posting is now ${data.autoPublishEnabled ? 'ENABLED' : 'DISABLED'}.`,
+        });
+      } else {
+        // Revert on server error
+        setConfig((prev) => ({ ...prev, autoPublishEnabled: !nextState }));
+        setStatusMessage({
+          type: 'error',
+          text: data.error || 'Server rejected auto-publish toggle. Please verify administrator permissions.',
+        });
+      }
+    } catch (e: any) {
+      setConfig((prev) => ({ ...prev, autoPublishEnabled: !nextState }));
+      setStatusMessage({
+        type: 'error',
+        text: e.message || 'Network error saving Auto-Publish setting',
+      });
+    } finally {
+      setIsTogglingAutoPublish(false);
+      // Keep guard active briefly to allow background poll to catch up with server state
+      setTimeout(() => {
+        isTogglingAutoPublishRef.current = false;
+      }, 2000);
+    }
+  };
+
   const handleExplicitSave = async () => {
     if (!pageIdInput.trim()) {
       setStatusMessage({ type: 'error', text: 'Please enter a Facebook Page ID before saving.' });
@@ -732,46 +790,6 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       });
     } finally {
       setIsTestingPost(false);
-    }
-  };
-
-  const handleTestAiConnection = async () => {
-    if (!isAuthenticated) {
-      setShowLoginModal(true);
-      return;
-    }
-    setIsTestingAi(true);
-    setAiTestResult(null);
-    try {
-      const res = await authFetch('/api/facebook/test-ai-connection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deepseekApiKey: config?.deepseekApiKey,
-          deepseekModel: config?.deepseekModel || 'deepseek-chat',
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setAiTestResult({
-          success: true,
-          message: data.message || 'Connected to DeepSeek AI successfully!',
-          sample: data.sample,
-        });
-      } else {
-        setAiTestResult({
-          success: false,
-          message: data.error || 'Failed to connect to DeepSeek AI.',
-        });
-      }
-    } catch (e: any) {
-      setAiTestResult({
-        success: false,
-        message: e.message || 'Network error while contacting DeepSeek API.',
-      });
-    } finally {
-      setIsTestingAi(false);
     }
   };
 
@@ -899,18 +917,20 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                 <span className="text-xs text-slate-300 font-semibold">Auto-Publish:</span>
                 <button
                   id="auto-publish-toggle"
-                  onClick={() =>
-                    handleSaveConfig({
-                      autoPublishEnabled: !config.autoPublishEnabled,
-                    })
-                  }
-                  className={`px-2.5 py-0.5 rounded-md text-xs font-bold transition-all ${
+                  onClick={handleToggleAutoPublish}
+                  disabled={isTogglingAutoPublish}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     config.autoPublishEnabled
-                      ? 'bg-emerald-600 text-white shadow-emerald-500/20 shadow'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 shadow'
+                      : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  } disabled:opacity-50`}
+                  title={
+                    config.autoPublishEnabled
+                      ? 'Click to turn OFF automated Facebook posting'
+                      : 'Click to turn ON automated Facebook posting'
+                  }
                 >
-                  {config.autoPublishEnabled ? 'ON' : 'OFF'}
+                  {isTogglingAutoPublish ? '...' : config.autoPublishEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
             )}

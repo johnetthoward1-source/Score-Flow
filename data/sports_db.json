@@ -6139,6 +6139,458 @@
       "minute": 45,
       "startTime": "2026-09-23T07:00:00.000Z",
       "lastUpdated": "2026-09-23T07:53:41.867Z"
+    },
+    "SvDtTFG8": {
+      "id": "SvDtTFG8",
+      "provider": "flashscore",
+      "league": {
+        "id": "Ao5PaWJN",
+        "name": "FIFA ASEAN Cup - Division 1",
+        "country": "ASIA",
+        "countryCode": "5",
+        "flag": "064yGdV1-nHFy44Zj.png"
+      },
+      "homeTeam": {
+        "id": "Bangladesh",
+        "name": "Bangladesh"
+      },
+      "awayTeam": {
+        "id": "team_malaysia",
+        "name": "Malaysia"
+      },
+      "homeScore": 0,
+      "awayScore": 3,
+      "status": "IN_PLAY",
+      "statusText": "93' (2nd Half)",
+      "minute": 93,
+      "periodScores": {
+        "half1Home": 0,
+        "half1Away": 1
+      },
+      "startTime": "2026-09-25T09:00:00.000Z",
+      "lastUpdated": "2026-09-25T10:52:13.188Z"
+    },
+    "OWuF6MoI": {
+      "id": "OWuF6MoI",
+      "provider": "flashscore",
+      "league": {
+        "id": "YqUfWUrh",
+        "name": "Federation Cup",
+        "country": "BANGLADESH",
+        "countryCode": "29",
+        "flag": "Yyrny3V1-270UL81e.png"
+      },
+      "homeTeam": {
+        "id": "Abahani Limited",
+        "name": "Abahani Limited"
+      },
+      "awayTeam": {
+        "id": "team_chattogram",
+        "name": "Chattogram"
+      },
+      "homeScore": 1,
+      "awayScore": 1,
+      "status": "IN_PLAY",
+      "statusText": "97' (2nd Half)",
+      "minute": 97,
+      "periodScores": {
+        "half1Home": 1,
+        "half1Away": 1
+      },
+      "startTime": "2026-09-25T09:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:02:13.214Z"
+    },
+    "jqcuQt4e": {
+      "id": "jqcuQt4e",
+      "provider": "flashscore",
+      "league": {
+        "id": "fPsqKq0e",
+        "name": "U19 League",
+        "country": "CZECH REPUBLIC",
+        "countryCode": "62",
+        "flag": "2F22JFhU-KW4YXYPS.png"
+      },
+      "homeTeam": {
+        "id": "Sparta Prague U19",
+        "name": "Sparta Prague U19"
+      },
+      "awayTeam": {
+        "id": "team_mlada_boleslav_u19",
+        "name": "Mlada Boleslav U19"
+      },
+      "homeScore": 2,
+      "awayScore": 0,
+      "status": "IN_PLAY",
+      "statusText": "93' (2nd Half)",
+      "minute": 93,
+      "periodScores": {
+        "half1Home": 1,
+        "half1Away": 0
+      },
+      "startTime": "2026-09-25T09:00:00.000Z",
+      "lastUpdated": "2026-09-25T10:58:43.218Z"
+    },
+    "lEJeKVSa": {
+      "id": "lEJeKVSa",
+      "provider": "flashscore",
+      "league": {
+        "id": "6LrUhxDc",
+        "name": "Elite League U20",
+        "country": "EUROPE",
+        "countryCode": "6",
+        "flag": "bVuVnzB7-xhobzm8s.png"
+      },
+      "homeTeam": {
+        "id": "Italy U20",
+        "name": "Italy U20"
+      },
+      "awayTeam": {
+        "id": "team_england_u20",
+        "name": "England U20"
+      },
+      "homeScore": 1,
+      "awayScore": 3,
+      "status": "IN_PLAY",
+      "statusText": "93' (2nd Half)",
+      "minute": 93,
+      "periodScores": {
+        "half1Home": 1,
+        "half1Away": 2
+      },
+      "startTime": "2026-09-25T09:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:28:25.103Z"
+    },
+    "8WZWKEnB": {
+      "id": "8WZWKEnB",
+      "provider": "flashscore",
+      "league": {
+        "id": "bHI7r0s9",
+        "name": "FNL 2 - Division B - Group 4 - Championship Group",
+        "country": "RUSSIA",
+        "countryCode": "158",
+        "flag": "ERcoH3C7-xEve2OcQ.png"
+      },
+      "homeTeam": {
+        "id": "Dynamo Barnaul",
+        "name": "Dynamo Barnaul"
+      },
+      "awayTeam": {
+        "id": "team_pobeda_nizhniy_novgorod",
+        "name": "Pobeda Nizhniy Novgorod"
+      },
+      "homeScore": 2,
+      "awayScore": 2,
+      "status": "IN_PLAY",
+      "statusText": "96' (2nd Half)",
+      "minute": 96,
+      "periodScores": {
+        "half1Home": 2,
+        "half1Away": 1
+      },
+      "startTime": "2026-09-25T09:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:25:27.709Z"
+    },
+    "YudwCdgo": {
+      "id": "YudwCdgo",
+      "provider": "flashscore",
+      "league": {
+        "id": "K4p7Drcd",
+        "name": "Friendly International",
+        "country": "WORLD",
+        "countryCode": "8",
+        "flag": "6ak2lG97-nmxc77a0.png"
+      },
+      "homeTeam": {
+        "id": "Poland U19",
+        "name": "Poland U19"
+      },
+      "awayTeam": {
+        "id": "team_switzerland_u19",
+        "name": "Switzerland U19"
+      },
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "IN_PLAY",
+      "statusText": "83' (2nd Half)",
+      "minute": 83,
+      "periodScores": {
+        "half1Home": 0,
+        "half1Away": 1
+      },
+      "startTime": "2026-09-25T09:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:13:11.053Z"
+    },
+    "bm3Vhu9j": {
+      "id": "bm3Vhu9j",
+      "provider": "flashscore",
+      "league": {
+        "id": "86UiqI4F",
+        "name": "COSAFA Championship U20 - Play Offs",
+        "country": "AFRICA",
+        "countryCode": "1",
+        "flag": "rXfqBUjD-Cj9CoAs3.png"
+      },
+      "homeTeam": {
+        "id": "South Africa U20",
+        "name": "South Africa U20"
+      },
+      "awayTeam": {
+        "id": "team_zambia_u20",
+        "name": "Zambia U20"
+      },
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "IN_PLAY",
+      "statusText": "70' (2nd Half)",
+      "minute": 70,
+      "periodScores": {
+        "half1Home": 2,
+        "half1Away": 0
+      },
+      "startTime": "2026-09-25T10:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.856Z"
+    },
+    "KMmYeEHs": {
+      "id": "KMmYeEHs",
+      "provider": "flashscore",
+      "league": {
+        "id": "hQSE2XHb",
+        "name": "V.League 2",
+        "country": "VIETNAM",
+        "countryCode": "206",
+        "flag": "0GNM2oA7-jaXcks2p.png"
+      },
+      "homeTeam": {
+        "id": "Ho Chi Minh City",
+        "name": "Ho Chi Minh City"
+      },
+      "awayTeam": {
+        "id": "team_van_hien",
+        "name": "Van Hien"
+      },
+      "homeScore": 0,
+      "awayScore": 1,
+      "status": "IN_PLAY",
+      "statusText": "72' (2nd Half)",
+      "minute": 72,
+      "periodScores": {
+        "half1Home": 0,
+        "half1Away": 0
+      },
+      "startTime": "2026-09-25T10:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.920Z"
+    },
+    "8EY6ZJpI": {
+      "id": "8EY6ZJpI",
+      "provider": "flashscore",
+      "league": {
+        "id": "K4p7Drcd",
+        "name": "Friendly International",
+        "country": "WORLD",
+        "countryCode": "8",
+        "flag": "6ak2lG97-nmxc77a0.png"
+      },
+      "homeTeam": {
+        "id": "Australia",
+        "name": "Australia"
+      },
+      "awayTeam": {
+        "id": "team_brazil",
+        "name": "Brazil"
+      },
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "IN_PLAY",
+      "statusText": "58' (2nd Half)",
+      "minute": 58,
+      "periodScores": {
+        "half1Home": 0,
+        "half1Away": 0
+      },
+      "startTime": "2026-09-25T10:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.922Z"
+    },
+    "l6ykmI3m": {
+      "id": "l6ykmI3m",
+      "provider": "flashscore",
+      "league": {
+        "id": "jgnxdTvq",
+        "name": "Asian Games - Play Offs",
+        "country": "ASIA",
+        "countryCode": "5",
+        "flag": "IVMQwKld-t2o6IE27.png"
+      },
+      "homeTeam": {
+        "id": "South Korea U23",
+        "name": "South Korea U23"
+      },
+      "awayTeam": {
+        "id": "team_vietnam_u23",
+        "name": "Vietnam U23"
+      },
+      "homeScore": 1,
+      "awayScore": 0,
+      "status": "PAUSED",
+      "statusText": "HT (45')",
+      "minute": 45,
+      "startTime": "2026-09-25T10:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.859Z"
+    },
+    "WQOJObfo": {
+      "id": "WQOJObfo",
+      "provider": "flashscore",
+      "league": {
+        "id": "h20uNH0d",
+        "name": "Asian Games Women - Play Offs",
+        "country": "ASIA",
+        "countryCode": "5",
+        "flag": "djRbC8V1-fc1XH2Tg.png"
+      },
+      "homeTeam": {
+        "id": "Japan W",
+        "name": "Japan W"
+      },
+      "awayTeam": {
+        "id": "team_philippines_w",
+        "name": "Philippines W"
+      },
+      "homeScore": 4,
+      "awayScore": 0,
+      "status": "PAUSED",
+      "statusText": "HT (45')",
+      "minute": 45,
+      "startTime": "2026-09-25T10:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.862Z"
+    },
+    "Qmb3WADi": {
+      "id": "Qmb3WADi",
+      "provider": "flashscore",
+      "league": {
+        "id": "h20uNH0d",
+        "name": "Asian Games Women - Play Offs",
+        "country": "ASIA",
+        "countryCode": "5",
+        "flag": "djRbC8V1-fc1XH2Tg.png"
+      },
+      "homeTeam": {
+        "id": "South Korea W",
+        "name": "South Korea W"
+      },
+      "awayTeam": {
+        "id": "team_uzbekistan_w",
+        "name": "Uzbekistan W"
+      },
+      "homeScore": 4,
+      "awayScore": 1,
+      "status": "PAUSED",
+      "statusText": "HT (45')",
+      "minute": 45,
+      "startTime": "2026-09-25T10:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.864Z"
+    },
+    "WQILC6ZF": {
+      "id": "WQILC6ZF",
+      "provider": "flashscore",
+      "league": {
+        "id": "U3iTWJUr",
+        "name": "Club Friendly",
+        "country": "WORLD",
+        "countryCode": "8",
+        "flag": "Mkt7Lzjd-htFggx1J.png"
+      },
+      "homeTeam": {
+        "id": "Zurich (Sui)",
+        "name": "Zurich (Sui)"
+      },
+      "awayTeam": {
+        "id": "team_xamax__sui_",
+        "name": "Xamax (Sui)"
+      },
+      "homeScore": 2,
+      "awayScore": 1,
+      "status": "PAUSED",
+      "statusText": "HT (45')",
+      "minute": 45,
+      "startTime": "2026-09-25T10:30:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.925Z"
+    },
+    "8rpeOF9e": {
+      "id": "8rpeOF9e",
+      "provider": "flashscore",
+      "league": {
+        "id": "2BSdebBN",
+        "name": "League One",
+        "country": "CHINA",
+        "countryCode": "52",
+        "flag": "lxz3cO7j-KWKE6aiG.png"
+      },
+      "homeTeam": {
+        "id": "Wuxi Wugou",
+        "name": "Wuxi Wugou"
+      },
+      "awayTeam": {
+        "id": "team_guangxi_hengchen",
+        "name": "Guangxi Hengchen"
+      },
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "IN_PLAY",
+      "statusText": "31' (1st Half)",
+      "minute": 31,
+      "startTime": "2026-09-25T11:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.866Z"
+    },
+    "lAkXxyeg": {
+      "id": "lAkXxyeg",
+      "provider": "flashscore",
+      "league": {
+        "id": "MwvWjCoo",
+        "name": "NB I Women",
+        "country": "HUNGARY",
+        "countryCode": "91",
+        "flag": "ptFp0lfU-dfuJhBEK.png"
+      },
+      "homeTeam": {
+        "id": "Pecsi MFC W",
+        "name": "Pecsi MFC W"
+      },
+      "awayTeam": {
+        "id": "team_ujpest_w",
+        "name": "Ujpest W"
+      },
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "IN_PLAY",
+      "statusText": "31' (1st Half)",
+      "minute": 31,
+      "startTime": "2026-09-25T11:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.869Z"
+    },
+    "fVxOqTZj": {
+      "id": "fVxOqTZj",
+      "provider": "flashscore",
+      "league": {
+        "id": "C6gTLtSk",
+        "name": "III Liga - Group IV",
+        "country": "POLAND",
+        "countryCode": "154",
+        "flag": "tIP6qdDO-Gv2UKmTk.png"
+      },
+      "homeTeam": {
+        "id": "Wisla II",
+        "name": "Wisla II"
+      },
+      "awayTeam": {
+        "id": "team_czarni_polaniec",
+        "name": "Czarni Polaniec"
+      },
+      "homeScore": 0,
+      "awayScore": 0,
+      "status": "IN_PLAY",
+      "statusText": "31' (1st Half)",
+      "minute": 31,
+      "startTime": "2026-09-25T11:00:00.000Z",
+      "lastUpdated": "2026-09-25T11:31:23.917Z"
     }
   },
   "events": {
@@ -8649,20 +9101,595 @@
         "awayScore": 0,
         "createdAt": "2026-09-23T07:50:53.280Z"
       }
+    ],
+    "SvDtTFG8": [
+      {
+        "id": "ev_SvDtTFG8_1790329262605_GOAL",
+        "matchId": "SvDtTFG8",
+        "type": "GOAL",
+        "minute": 41,
+        "teamSide": "away",
+        "playerName": "Malaysia",
+        "homeScore": 0,
+        "awayScore": 2,
+        "createdAt": "2026-09-25T09:41:02.605Z"
+      },
+      {
+        "id": "ev_SvDtTFG8_1790329832587_HALF_TIME",
+        "matchId": "SvDtTFG8",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Bangladesh",
+        "homeScore": 0,
+        "awayScore": 2,
+        "createdAt": "2026-09-25T09:50:32.587Z"
+      },
+      {
+        "id": "ev_SvDtTFG8_1790331182701_GOAL",
+        "matchId": "SvDtTFG8",
+        "type": "GOAL",
+        "minute": 54,
+        "teamSide": "away",
+        "playerName": "Malaysia",
+        "homeScore": 0,
+        "awayScore": 3,
+        "createdAt": "2026-09-25T10:13:02.701Z"
+      }
+    ],
+    "jqcuQt4e": [
+      {
+        "id": "ev_jqcuQt4e_1790329832597_HALF_TIME",
+        "matchId": "jqcuQt4e",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Sparta Prague U19",
+        "homeScore": 1,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T09:50:32.597Z"
+      },
+      {
+        "id": "ev_jqcuQt4e_1790331555870_GOAL",
+        "matchId": "jqcuQt4e",
+        "type": "GOAL",
+        "minute": 54,
+        "teamSide": "home",
+        "playerName": "Sparta Prague U19",
+        "homeScore": 2,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:19:15.870Z"
+      }
+    ],
+    "OWuF6MoI": [
+      {
+        "id": "ev_OWuF6MoI_1790330042662_HALF_TIME",
+        "matchId": "OWuF6MoI",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Abahani Limited",
+        "homeScore": 0,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T09:54:02.662Z"
+      },
+      {
+        "id": "ev_OWuF6MoI_1790331555864_GOAL",
+        "matchId": "OWuF6MoI",
+        "type": "GOAL",
+        "minute": 54,
+        "teamSide": "home",
+        "playerName": "Abahani Limited",
+        "homeScore": 1,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:19:15.864Z"
+      },
+      {
+        "id": "ev_OWuF6MoI_1790332155829_GOAL",
+        "matchId": "OWuF6MoI",
+        "type": "GOAL",
+        "minute": 64,
+        "teamSide": "away",
+        "playerName": "Chattogram",
+        "homeScore": 1,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:29:15.829Z"
+      }
+    ],
+    "8WZWKEnB": [
+      {
+        "id": "ev_8WZWKEnB_1790330402671_GOAL",
+        "matchId": "8WZWKEnB",
+        "type": "GOAL",
+        "minute": 30,
+        "teamSide": "away",
+        "playerName": "Pobeda Nizhniy Novgorod",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:00:02.671Z"
+      },
+      {
+        "id": "ev_8WZWKEnB_1790331555879_HALF_TIME",
+        "matchId": "8WZWKEnB",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Dynamo Barnaul",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:19:15.879Z"
+      },
+      {
+        "id": "ev_8WZWKEnB_1790332783180_GOAL",
+        "matchId": "8WZWKEnB",
+        "type": "GOAL",
+        "minute": 51,
+        "teamSide": "home",
+        "playerName": "Dynamo Barnaul",
+        "homeScore": 1,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:39:43.180Z"
+      },
+      {
+        "id": "ev_8WZWKEnB_1790333383240_GOAL",
+        "matchId": "8WZWKEnB",
+        "type": "GOAL",
+        "minute": 61,
+        "teamSide": "home",
+        "playerName": "Dynamo Barnaul",
+        "homeScore": 2,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:49:43.240Z"
+      },
+      {
+        "id": "ev_8WZWKEnB_1790335359168_GOAL",
+        "matchId": "8WZWKEnB",
+        "type": "GOAL",
+        "minute": 94,
+        "teamSide": "away",
+        "playerName": "Pobeda Nizhniy Novgorod",
+        "homeScore": 2,
+        "awayScore": 2,
+        "createdAt": "2026-09-25T11:22:39.168Z"
+      }
+    ],
+    "KMmYeEHs": [
+      {
+        "id": "ev_KMmYeEHs_1790330792716_GOAL",
+        "matchId": "KMmYeEHs",
+        "type": "GOAL",
+        "minute": 6,
+        "teamSide": "away",
+        "playerName": "Van Hien",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:06:32.716Z"
+      },
+      {
+        "id": "ev_KMmYeEHs_1790333383246_HALF_TIME",
+        "matchId": "KMmYeEHs",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Ho Chi Minh City",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:49:43.246Z"
+      }
+    ],
+    "lEJeKVSa": [
+      {
+        "id": "ev_lEJeKVSa_1790330972692_GOAL",
+        "matchId": "lEJeKVSa",
+        "type": "GOAL",
+        "minute": 39,
+        "teamSide": "away",
+        "playerName": "England U20",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:09:32.692Z"
+      },
+      {
+        "id": "ev_lEJeKVSa_1790331765913_HALF_TIME",
+        "matchId": "lEJeKVSa",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Italy U20",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:22:45.913Z"
+      },
+      {
+        "id": "ev_lEJeKVSa_1790333383233_GOAL",
+        "matchId": "lEJeKVSa",
+        "type": "GOAL",
+        "minute": 55,
+        "teamSide": "away",
+        "playerName": "England U20",
+        "homeScore": 0,
+        "awayScore": 2,
+        "createdAt": "2026-09-25T10:49:43.233Z"
+      },
+      {
+        "id": "ev_lEJeKVSa_1790334163245_GOAL",
+        "matchId": "lEJeKVSa",
+        "type": "GOAL",
+        "minute": 68,
+        "teamSide": "home",
+        "playerName": "Italy U20",
+        "homeScore": 1,
+        "awayScore": 2,
+        "createdAt": "2026-09-25T11:02:43.245Z"
+      },
+      {
+        "id": "ev_lEJeKVSa_1790335359156_GOAL",
+        "matchId": "lEJeKVSa",
+        "type": "GOAL",
+        "minute": 88,
+        "teamSide": "away",
+        "playerName": "England U20",
+        "homeScore": 1,
+        "awayScore": 3,
+        "createdAt": "2026-09-25T11:22:39.156Z"
+      }
+    ],
+    "YudwCdgo": [
+      {
+        "id": "ev_YudwCdgo_1790331555888_HALF_TIME",
+        "matchId": "YudwCdgo",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Poland U19",
+        "homeScore": 0,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:19:15.888Z"
+      },
+      {
+        "id": "ev_YudwCdgo_1790334735981_GOAL",
+        "matchId": "YudwCdgo",
+        "type": "GOAL",
+        "minute": 82,
+        "teamSide": "away",
+        "playerName": "Switzerland U19",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:12:15.981Z"
+      }
+    ],
+    "bm3Vhu9j": [
+      {
+        "id": "ev_bm3Vhu9j_1790332365876_GOAL",
+        "matchId": "bm3Vhu9j",
+        "type": "GOAL",
+        "minute": 32,
+        "teamSide": "away",
+        "playerName": "Zambia U20",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:32:45.876Z"
+      },
+      {
+        "id": "ev_bm3Vhu9j_1790333563190_HALF_TIME",
+        "matchId": "bm3Vhu9j",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "South Africa U20",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:52:43.190Z"
+      },
+      {
+        "id": "ev_bm3Vhu9j_1790335569043_GOAL",
+        "matchId": "bm3Vhu9j",
+        "type": "GOAL",
+        "minute": 65,
+        "teamSide": "home",
+        "playerName": "South Africa U20",
+        "homeScore": 1,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:26:09.043Z"
+      },
+      {
+        "id": "ev_bm3Vhu9j_1790335748999_GOAL",
+        "matchId": "bm3Vhu9j",
+        "type": "GOAL",
+        "minute": 68,
+        "teamSide": "home",
+        "playerName": "South Africa U20",
+        "homeScore": 2,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:29:08.999Z"
+      }
+    ],
+    "Qmb3WADi": [
+      {
+        "id": "ev_Qmb3WADi_1790332783164_GOAL",
+        "matchId": "Qmb3WADi",
+        "type": "GOAL",
+        "minute": 9,
+        "teamSide": "home",
+        "playerName": "South Korea W",
+        "homeScore": 1,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:39:43.164Z"
+      },
+      {
+        "id": "ev_Qmb3WADi_1790332993182_GOAL",
+        "matchId": "Qmb3WADi",
+        "type": "GOAL",
+        "minute": 13,
+        "teamSide": "away",
+        "playerName": "Uzbekistan W",
+        "homeScore": 1,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:43:13.182Z"
+      },
+      {
+        "id": "ev_Qmb3WADi_1790333383219_GOAL",
+        "matchId": "Qmb3WADi",
+        "type": "GOAL",
+        "minute": 19,
+        "teamSide": "home",
+        "playerName": "South Korea W",
+        "homeScore": 2,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:49:43.219Z"
+      },
+      {
+        "id": "ev_Qmb3WADi_1790335359139_GOAL",
+        "matchId": "Qmb3WADi",
+        "type": "GOAL",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "South Korea W",
+        "homeScore": 4,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:22:39.139Z"
+      },
+      {
+        "id": "ev_Qmb3WADi_1790335359143_GOAL",
+        "matchId": "Qmb3WADi",
+        "type": "GOAL",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "South Korea W",
+        "homeScore": 4,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:22:39.143Z"
+      },
+      {
+        "id": "ev_Qmb3WADi_1790335359146_HALF_TIME",
+        "matchId": "Qmb3WADi",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "South Korea W",
+        "homeScore": 4,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:22:39.146Z"
+      }
+    ],
+    "WQILC6ZF": [
+      {
+        "id": "ev_WQILC6ZF_1790332783196_GOAL",
+        "matchId": "WQILC6ZF",
+        "type": "GOAL",
+        "minute": 9,
+        "teamSide": "home",
+        "playerName": "Zurich (Sui)",
+        "homeScore": 1,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:39:43.196Z"
+      },
+      {
+        "id": "ev_WQILC6ZF_1790334163272_GOAL",
+        "matchId": "WQILC6ZF",
+        "type": "GOAL",
+        "minute": 32,
+        "teamSide": "away",
+        "playerName": "Xamax (Sui)",
+        "homeScore": 1,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:02:43.272Z"
+      },
+      {
+        "id": "ev_WQILC6ZF_1790334343276_GOAL",
+        "matchId": "WQILC6ZF",
+        "type": "GOAL",
+        "minute": 35,
+        "teamSide": "home",
+        "playerName": "Zurich (Sui)",
+        "homeScore": 2,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:05:43.276Z"
+      },
+      {
+        "id": "ev_WQILC6ZF_1790335359180_HALF_TIME",
+        "matchId": "WQILC6ZF",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Zurich (Sui)",
+        "homeScore": 2,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:22:39.180Z"
+      }
+    ],
+    "l6ykmI3m": [
+      {
+        "id": "ev_l6ykmI3m_1790333173189_GOAL",
+        "matchId": "l6ykmI3m",
+        "type": "GOAL",
+        "minute": 16,
+        "teamSide": "home",
+        "playerName": "South Korea U23",
+        "homeScore": 1,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:46:13.189Z"
+      },
+      {
+        "id": "ev_l6ykmI3m_1790334343234_GOAL",
+        "matchId": "l6ykmI3m",
+        "type": "GOAL",
+        "minute": 35,
+        "teamSide": "away",
+        "playerName": "Vietnam U23",
+        "homeScore": 1,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T11:05:43.234Z"
+      },
+      {
+        "id": "ev_l6ykmI3m_1790335359123_HALF_TIME",
+        "matchId": "l6ykmI3m",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "South Korea U23",
+        "homeScore": 1,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T11:22:39.123Z"
+      }
+    ],
+    "WQOJObfo": [
+      {
+        "id": "ev_WQOJObfo_1790333953199_GOAL",
+        "matchId": "WQOJObfo",
+        "type": "GOAL",
+        "minute": 29,
+        "teamSide": "home",
+        "playerName": "Japan W",
+        "homeScore": 2,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T10:59:13.199Z"
+      },
+      {
+        "id": "ev_WQOJObfo_1790334545668_GOAL",
+        "matchId": "WQOJObfo",
+        "type": "GOAL",
+        "minute": 39,
+        "teamSide": "home",
+        "playerName": "Japan W",
+        "homeScore": 3,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T11:09:05.668Z"
+      },
+      {
+        "id": "ev_WQOJObfo_1790335359129_GOAL",
+        "matchId": "WQOJObfo",
+        "type": "GOAL",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Japan W",
+        "homeScore": 4,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T11:22:39.129Z"
+      },
+      {
+        "id": "ev_WQOJObfo_1790335359133_HALF_TIME",
+        "matchId": "WQOJObfo",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Japan W",
+        "homeScore": 4,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T11:22:39.133Z"
+      }
+    ],
+    "8EY6ZJpI": [
+      {
+        "id": "ev_8EY6ZJpI_1790333953222_GOAL",
+        "matchId": "8EY6ZJpI",
+        "type": "GOAL",
+        "minute": 59,
+        "teamSide": "away",
+        "playerName": "Brazil",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-25T10:59:13.222Z"
+      },
+      {
+        "id": "ev_8EY6ZJpI_1790334163265_HALF_TIME",
+        "matchId": "8EY6ZJpI",
+        "type": "STATUS_CHANGE",
+        "minute": 45,
+        "teamSide": "home",
+        "playerName": "Australia",
+        "homeScore": 0,
+        "awayScore": 0,
+        "createdAt": "2026-09-25T11:02:43.265Z"
+      }
     ]
   },
   "facebookPosts": [
     {
-      "id": "pub_1790149673091_7fduo",
-      "matchId": "FULL_TIME",
-      "matchTitle": "Scoreboard (FULL_TIME)",
-      "leagueName": "Various",
+      "id": "pub_live_roundup_live",
+      "matchId": "roundup_live",
+      "matchTitle": "Combined Scoreboard (LIVE)",
+      "leagueName": "COSAFA Championship U20 - Play Offs, Federation Cup, Elite League U20, FNL 2 - Division B - Group 4 - Championship Group, Friendly International",
       "eventType": "ROUNDUP",
-      "message": "🏆 🇦🇴 ANGOLA • Girabola\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🏁 FT | Sagrada 0 - 0 Kabuscorp\n\n🏆 🇧🇴 BOLIVIA • Copa Pacena\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🏁 FT | Nacional Potosi 0 - 1 Real Potosi\n  📊 HT: 0-0 | FT: 0-1\n  🚩 3-6 Corners • 🟨 4-3 Cards • 🟥 1-0 Red • 🔁 5-5 Subs\n  🎯 Shots: 9-16 (1-6 on target) • 🅿️ Poss: 45%-55%\n\n🏆 🇧🇷 BRAZIL • Serie B\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🏁 FT | Criciuma 0 - 2 Operario-PR\n  📊 HT: 0-1 | FT: 0-2\n  🚩 17-2 Corners • 🟨 3-2 Cards • 🔁 5-5 Subs\n  🎯 Shots: 26-5 (4-2 on target) • 🅿️ Poss: 67%-33%\n\n🏆 🇨🇴 COLOMBIA • Primera A - Clausura\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🏁 FT | Ind. Medellin 2 - 1 Jaguares de Cordoba\n  📊 HT: 1-0 | FT: 2-1\n  🚩 7-3 Corners • 🟨 2-4 Cards • 🟥 0-1 Red • 🔁 5-5 Subs\n  🎯 Shots: 24-7 (9-1 on target) • 🅿️ Poss: 55%-45%\n\n🏁 FT | Santa Fe 0 - 1 Dep. Cali\n  📊 HT: 0-0 | FT: 0-1\n  🚩 9-3 Corners • 🟨 2-2 Cards • 🟥 1-0 Red • 🔁 5-4 Subs\n  🎯 Shots: 19-9 (5-4 on target) • 🅿️ Poss: 55%-45%\n\n🏆 🇨🇴 COLOMBIA • Primera B - Clausura\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🏁 FT | Atletico F.C. 0 - 3 Tigres\n  📊 HT: 0-3 | FT: 0-3\n  🚩 4-9 Corners • 🟨 1-3 Cards • 🔁 4-5 Subs\n  🎯 Shots: 6-6 (1-4 on target) • 🅿️ Poss: 49%-51%\n\n🏁 FT | Ind. Valle del Cauca 0 - 1 Inter Palmira\n  📊 HT: 0-1 | FT: 0-1\n  🚩 3-6 Corners • 🟨 3-4 Cards\n  🎯 Shots: 4-11 (2-5 on target) • 🅿️ Poss: 51%-49%\n\n🏁 FT | Real Santander 0 - 0 Orsomarso\n  📊 HT: 0-0 | FT: 0-0\n  🚩 4-5 Corners • 🟨 3-2 Cards • 🔁 4-4 Subs\n  🎯 Shots: 3-9 (1-1 on target) • 🅿️ Poss: 50%-50%\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📢 Follow @GameScores for live scores & breaking updates!\n#GameScores #LiveScores #Football #Matchday",
-      "status": "FAILED",
-      "error": "Meta Anti-Spam Velocity Block (Error 1390008): Facebook temporarily blocked publishing to protect against spam velocity. The queue is safely paused for 10 minutes to protect Page reputation.",
-      "retryCount": 1,
-      "createdAt": "2026-09-23T07:47:53.091Z"
+      "message": "🔥 IN-PLAY SCORES & STATS • 6 MATCHES LIVE NOW (10:59)\n\n🏆 🌍 COSAFA Championship U20 - Play Offs\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ HT (45') | South Africa U20 0 - 1 Zambia U20\n  🚩 3-4 Corners\n  🎯 Shots: 3-9 (1-5 on target) • 🅿️ Poss: 51%-49%\n\n🏆 🌍 BANGLADESH • Federation Cup\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 94' | Abahani Limited 1 - 1 Chattogram\n  📊 HT: 1-1 | 2nd Half: 0-0\n  🚩 2-9 Corners\n  🎯 Shots: 10-15 (10-15 on target) • 🅿️ Poss: 64%-36%\n\n🏆 🇪🇺 Elite League U20\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 64' | Italy U20 0 - 2 England U20\n  📊 HT: 0-1 | 2nd Half: 0-1\n  🚩 0-4 Corners • 🟨 1-1 Cards\n  🎯 Shots: 4-11 (2-5 on target) • 🅿️ Poss: 37%-63%\n\n🏆 🇷🇺 RUSSIA • FNL 2 - Division B - Group 4 - Championship Group\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 70' | Dynamo Barnaul 2 - 1 Pobeda Nizhniy Novgorod\n  📊 HT: 2-0 | 2nd Half: 0-1\n\n🏆 🌍 Friendly International\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 69' | Poland U19 0 - 0 Switzerland U19\n  📊 HT: 0-0 | 2nd Half: 0-0\n  🚩 3-5 Corners\n  🎯 Shots: 6-12 (2-5 on target) • 🅿️ Poss: 44%-56%\n\n⚡ 59' | Australia 0 - 1 Brazil\n  📊 HT: 0-1 | 2nd Half: 0-0\n  🚩 8-1 Corners • 🟨 1-0 Cards\n  🎯 Shots: 6-8 (1-4 on target) • 🅿️ Poss: 43%-57%\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ Follow @GameScores for ongoing pitch action & immediate results\n#GameScores #COSAFAChampionshipU20PlayOffs #LiveFootball #InPlay",
+      "fbPostId": "1136971859508742_122127237609390162",
+      "status": "PUBLISHED",
+      "retryCount": 0,
+      "createdAt": "2026-09-25T10:59:42.975Z",
+      "publishedAt": "2026-09-25T10:59:44.684Z"
+    }
+  ],
+  "claimedFtMatches": [],
+  "claimedHtMatches": [
+    {
+      "matchId": "SvDtTFG8",
+      "teamKey": "bangladesh_vs_malaysia",
+      "homeTeam": "Bangladesh",
+      "awayTeam": "Malaysia",
+      "leagueName": "FIFA ASEAN Cup - Division 1",
+      "score": "0 - 2",
+      "publicationKey": "roundup_ht_33191faeac100672",
+      "claimedAt": "2026-09-25T09:45:02.652Z"
+    },
+    {
+      "matchId": "OWuF6MoI",
+      "teamKey": "abahanilimited_vs_chattogram",
+      "homeTeam": "Abahani Limited",
+      "awayTeam": "Chattogram",
+      "leagueName": "Federation Cup",
+      "score": "0 - 0",
+      "publicationKey": "roundup_ht_33191faeac100672",
+      "claimedAt": "2026-09-25T09:45:02.652Z"
+    },
+    {
+      "matchId": "jqcuQt4e",
+      "teamKey": "spartapragueu19_vs_mladaboleslavu19",
+      "homeTeam": "Sparta Prague U19",
+      "awayTeam": "Mlada Boleslav U19",
+      "leagueName": "U19 League",
+      "score": "1 - 0",
+      "publicationKey": "roundup_ht_33191faeac100672",
+      "claimedAt": "2026-09-25T09:45:02.652Z"
+    },
+    {
+      "matchId": "lEJeKVSa",
+      "teamKey": "italyu20_vs_englandu20",
+      "homeTeam": "Italy U20",
+      "awayTeam": "England U20",
+      "leagueName": "Elite League U20",
+      "score": "0 - 1",
+      "publicationKey": "roundup_ht_c3eeba3067cf8ad4",
+      "claimedAt": "2026-09-25T10:15:02.700Z"
+    },
+    {
+      "matchId": "8WZWKEnB",
+      "teamKey": "dynamobarnaul_vs_pobedanizhniynovgorod",
+      "homeTeam": "Dynamo Barnaul",
+      "awayTeam": "Pobeda Nizhniy Novgorod",
+      "leagueName": "FNL 2 - Division B - Group 4 - Championship Group",
+      "score": "0 - 1",
+      "publicationKey": "roundup_ht_c3eeba3067cf8ad4",
+      "claimedAt": "2026-09-25T10:15:02.700Z"
     }
   ],
   "publisherState": {
@@ -8671,9 +9698,13 @@
     "publishingPaused": false,
     "consecutiveMetaBlocks": 0,
     "totalMetaBlocks": 1,
-    "updatedAt": "2026-09-23T07:53:43.033Z",
-    "lastAttemptAt": "2026-09-23T07:47:53.110Z",
-    "pauseReason": "Facebook Anti-Spam Velocity Filter (Error 1390008): Meta temporarily blocked publishing. Cooldown paused for 10 minutes."
+    "updatedAt": "2026-09-25T10:59:44.684Z",
+    "lastAttemptAt": "2026-09-25T10:59:42.990Z",
+    "pauseReason": "Facebook Anti-Spam Velocity Filter (Error 1390008): Meta temporarily blocked publishing. Cooldown paused for 10 minutes.",
+    "lastPublishAt": "2026-09-25T10:59:44.684Z",
+    "lastSuccessfulPublishAt": "2026-09-25T10:59:44.684Z",
+    "lastFacebookPostId": "1136971859508742_122127237609390162",
+    "lastPublishedContentHash": "ce17a988928ae12b684ba26b2f58f0a1307e21e3e906407e0680dd5c4a80b230"
   },
   "pendingPublications": [],
   "publisherLock": {
@@ -8682,32 +9713,30 @@
   },
   "settings": {
     "fbConfig": {
-      "pageId": "1136971859508742",
+      "pageId": "1233434546556565",
       "pageName": "GameScores",
       "category": "Sports",
       "link": "",
       "isConnected": true,
-      "autoPublishEnabled": true,
+      "autoPublishEnabled": false,
       "publishGoals": true,
       "publishRedCards": true,
       "publishKickoff": true,
       "publishHalfTime": true,
       "publishFullTime": true,
       "includeStatsInFullTime": true,
-      "targetLeagueIds": [
-        "WpszrNdU",
-        "jqeQc4eS"
-      ],
+      "targetLeagueIds": [],
       "postTemplateGoal": "⚽ GOAL! {home_team} {home_score} - {away_score} {away_team}!\n{player} ({minute}')\n🏆 {league_name}\n\n#{league_tag} #LiveScores",
       "postTemplateRedCard": "🟥 RED CARD! {team} player {player} sent off in the {minute}'!\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag}",
       "postTemplateKickoff": "⚡ MATCH KICK-OFF!\n{home_team} vs {away_team}\n🏆 {league_name}\nStay tuned for live score updates!",
       "postTemplateHalfTime": "⏸️ HALF-TIME: {home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}",
       "postTemplateFullTime": "🏁 FULL-TIME: {home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n{stats_summary}\nThanks for following!",
-      "lastRoundupPublishedAt": "2026-09-21T14:28:30.135Z",
+      "lastRoundupPublishedAt": "2026-09-25T10:59:42.982Z",
       "roundupIntervalMinutes": 5,
       "publishingMode": "roundup",
       "lastFtRoundupPublishedAt": "2026-09-23T07:47:53.099Z",
-      "pageAccessToken": "EAAO0s9GYGRQBSQ4b1LEvdBmBpD9PyFGvN3La3wTX7yzbixZCQv5mnODXi3HEltCqfGBaArGngSsYP3bbkTxax6ZBcKHB4pcjCRJFXe3hYSy84dfOwblBXHW3flu8dGC00JpAw0cHyJdlyipsatTzEetC3R2aT1HkpCLDDF9cy7XZCMAZAHlZCl6QvA6CHwhNPbSSZA"
+      "pageAccessToken": "1121121211221212121212121",
+      "lastHtRoundupPublishedAt": "2026-09-25T10:24:52.503Z"
     },
     "scraperSettings": {
       "activeProviderId": "flashscore",
@@ -9814,18 +10843,41 @@
       }
     ],
     "dailyLeagueSelection": {
-      "date": "2026-09-23",
-      "selectedLeagueIds": [
-        "WpszrNdU",
-        "jqeQc4eS"
-      ],
-      "selectedLeagueNames": [
-        "WE League Cup Women",
-        "Friendly International Women"
-      ],
+      "date": "2026-09-25",
+      "selectedLeagueIds": [],
+      "selectedLeagueNames": [],
       "allLeaguesSelected": false,
-      "lastUpdated": "2026-09-23T07:49:57.184Z"
-    }
+      "lastUpdated": "2026-09-25T11:09:53.328Z"
+    },
+    "publishedHtMatches": [
+      {
+        "matchId": "YudwCdgo",
+        "teamKey": "polandu19_vs_switzerlandu19",
+        "homeTeam": "Poland U19",
+        "awayTeam": "Switzerland U19",
+        "leagueName": "Friendly International",
+        "score": "0 - 0",
+        "publishedAt": "2026-09-25T10:24:52.499Z"
+      },
+      {
+        "matchId": "lEJeKVSa",
+        "teamKey": "italyu20_vs_englandu20",
+        "homeTeam": "Italy U20",
+        "awayTeam": "England U20",
+        "leagueName": "Elite League U20",
+        "score": "0 - 1",
+        "publishedAt": "2026-09-25T10:15:03.023Z"
+      },
+      {
+        "matchId": "8WZWKEnB",
+        "teamKey": "dynamobarnaul_vs_pobedanizhniynovgorod",
+        "homeTeam": "Dynamo Barnaul",
+        "awayTeam": "Pobeda Nizhniy Novgorod",
+        "leagueName": "FNL 2 - Division B - Group 4 - Championship Group",
+        "score": "0 - 1",
+        "publishedAt": "2026-09-25T10:15:03.023Z"
+      }
+    ]
   },
   "apiKeys": [],
   "adminUsers": [

@@ -157,6 +157,21 @@ function DashboardContent() {
                 },
               };
             });
+          } else if (packet.type === 'facebook_config_updated') {
+            setSystemStatus((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                facebookPublisher: {
+                  ...prev.facebookPublisher,
+                  config: {
+                    ...prev.facebookPublisher?.config,
+                    autoPublishEnabled: packet.payload.autoPublishEnabled,
+                    isConnected: packet.payload.isConnected,
+                  },
+                },
+              };
+            });
           }
         } catch (error) {
           console.warn('[WebSocket] Invalid server message:', error);

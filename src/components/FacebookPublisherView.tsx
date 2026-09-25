@@ -28,6 +28,8 @@ import {
   Trophy,
   Lock,
   PauseCircle,
+  Bot,
+  Cpu,
 } from 'lucide-react';
 import { FacebookPageConfig, FacebookPostRecord, Match, PublishedFtRecord, PublishedHtRecord, DailyLeagueSelection } from '../types';
 import { DailyLeagueSelectionView } from './DailyLeagueSelectionView';
@@ -133,6 +135,8 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const [isResettingCooldown, setIsResettingCooldown] = useState(false);
   const [isDismissingWarnings, setIsDismissingWarnings] = useState(false);
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string; sample?: any } | null>(null);
   const [queueMetrics, setQueueMetrics] = useState<{
     queueLength: number;
     isProcessing: boolean;
@@ -728,6 +732,46 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       });
     } finally {
       setIsTestingPost(false);
+    }
+  };
+
+  const handleTestAiConnection = async () => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    setIsTestingAi(true);
+    setAiTestResult(null);
+    try {
+      const res = await authFetch('/api/facebook/test-ai-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deepseekApiKey: config?.deepseekApiKey,
+          deepseekModel: config?.deepseekModel || 'deepseek-chat',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setAiTestResult({
+          success: true,
+          message: data.message || 'Connected to DeepSeek AI successfully!',
+          sample: data.sample,
+        });
+      } else {
+        setAiTestResult({
+          success: false,
+          message: data.error || 'Failed to connect to DeepSeek AI.',
+        });
+      }
+    } catch (e: any) {
+      setAiTestResult({
+        success: false,
+        message: e.message || 'Network error while contacting DeepSeek API.',
+      });
+    } finally {
+      setIsTestingAi(false);
     }
   };
 
@@ -2835,16 +2879,16 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                   <span>All Games in 1 Post Template (Scoreboard Roundup)</span>
                 </label>
                 <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-mono">
-                  Tags: {'{matches_list}'}, {'{legend}'}, {'{count}'}, {'{time}'}
+                  Tags: {'{title}'}, {'{matches_list}'}, {'{legend}'}, {'{count}'}, {'{time}'}, {'{hashtags}'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Format applied when all active live games are compiled into a consolidated Facebook scoreboard post grouped by country and league with detailed in-game stats and legend.
+                Format applied when all active live games are compiled into a consolidated Facebook scoreboard post grouped by country and league with detailed in-game stats, rotating non-repetitive headers, and dynamic hashtags.
               </p>
               <textarea
                 id="template-roundup"
                 rows={5}
-                placeholder="{matches_list}&#10;{legend}"
+                placeholder="{title}&#10;&#10;{matches_list}&#10;&#10;{legend}"
                 value={config.postTemplateRoundup || ''}
                 onChange={(e) => setConfig({ ...config, postTemplateRoundup: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
@@ -2882,16 +2926,16 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                   <span>Grouped Half-Time Scores Template (All HT Games in 1 Post)</span>
                 </label>
                 <span className="text-[10px] bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded font-mono">
-                  Tags: {'{matches_list}'}, {'{count}'}, {'{legend}'}, {'{hashtags}'}
+                  Tags: {'{title}'}, {'{matches_list}'}, {'{count}'}, {'{legend}'}, {'{hashtags}'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Applied when all active matches at half-time intermission are combined into a single organized Facebook post.
+                Applied when all active matches at half-time intermission are combined into a single organized Facebook post with dynamic anti-repetition headlines.
               </p>
               <textarea
                 id="template-halftime-roundup"
                 rows={5}
-                placeholder="{matches_list}&#10;{legend}"
+                placeholder="{title}&#10;&#10;{matches_list}&#10;&#10;{legend}"
                 value={config.postTemplateHalfTimeRoundup || ''}
                 onChange={(e) => setConfig({ ...config, postTemplateHalfTimeRoundup: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-cyan-500"
@@ -2906,16 +2950,16 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                   <span>Grouped Full-Time Results Template (All Finished Games in 1 Post)</span>
                 </label>
                 <span className="text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded font-mono">
-                  Tags: {'{matches_list}'}, {'{count}'}, {'{legend}'}, {'{hashtags}'}
+                  Tags: {'{title}'}, {'{matches_list}'}, {'{count}'}, {'{legend}'}, {'{hashtags}'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Applied when completed matches are consolidated and grouped by league into a single Facebook post.
+                Applied when completed matches are consolidated and grouped by league into a single Facebook post with rotating headlines and fresh hashtags.
               </p>
               <textarea
                 id="template-fulltime-roundup"
                 rows={5}
-                placeholder="{matches_list}&#10;{legend}"
+                placeholder="{title}&#10;&#10;{matches_list}&#10;&#10;{legend}"
                 value={config.postTemplateFullTimeRoundup || ''}
                 onChange={(e) => setConfig({ ...config, postTemplateFullTimeRoundup: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-amber-500"

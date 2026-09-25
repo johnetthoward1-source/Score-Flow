@@ -156,6 +156,10 @@ export interface FacebookPageConfig {
   postTemplateRoundup?: string;
   postTemplateHalfTimeRoundup?: string;
   postTemplateFullTimeRoundup?: string;
+  enableAiPostEnhancement?: boolean;
+  aiProvider?: 'deepseek' | 'gemini';
+  deepseekApiKey?: string;
+  deepseekModel?: string; // e.g. 'deepseek-chat'
   lastVerifiedAt?: string;
 }
 

@@ -17,6 +17,9 @@ import {
   formatLiveRoundupPost,
   formatResultsRoundupPost,
   formatHalfTimeRoundupPost,
+  formatLiveRoundupPostAsync,
+  formatResultsRoundupPostAsync,
+  formatHalfTimeRoundupPostAsync,
 } from '../publisher/templates.js';
 
 type BroadcastCallback = (type: string, payload: any) => void;
@@ -509,7 +512,7 @@ class SportsSyncEngine {
         await this.enrichMatchesWithStats(claimedMatches.slice(0, 15));
       }
 
-      const message = formatResultsRoundupPost(claimedMatches, fbConfig);
+      const message = await formatResultsRoundupPostAsync(claimedMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'FULL_TIME',
@@ -593,7 +596,7 @@ class SportsSyncEngine {
       // Enrich with stats if available
       await this.enrichMatchesWithStats(claimedMatches.slice(0, 15));
 
-      const message = formatHalfTimeRoundupPost(claimedMatches, fbConfig);
+      const message = await formatHalfTimeRoundupPostAsync(claimedMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'HALF_TIME',
@@ -675,7 +678,7 @@ class SportsSyncEngine {
 
       console.log(`[SyncCoordinator] Posting scheduled live scoreboard (${intervalMinutes}m interval, ${activeMatches.length} active matches)...`);
       await this.enrichMatchesWithStats(activeMatches);
-      const message = formatLiveRoundupPost(activeMatches, fbConfig);
+      const message = await formatLiveRoundupPostAsync(activeMatches, fbConfig);
 
       const pubRes = await facebookPublisher.requestPublication({
         type: 'LIVE',

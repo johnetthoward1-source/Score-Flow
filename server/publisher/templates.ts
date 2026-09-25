@@ -1,4 +1,5 @@
 import { Match, MatchEvent, FacebookPageConfig } from '../types.js';
+import { generatePostVariationWithAi, isAiGeneratorAvailable } from '../services/ai_enhancer.js';
 
 /**
  * Converts standard ASCII digits (0-9) to Unicode Mathematical Bold digits (𝟎-𝟗)
@@ -158,20 +159,128 @@ export function formatLeagueSectionHeader(country?: string, leagueName?: string)
   return `🏆 ${title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
-const FOOTER_SIGNATURES = [
-  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📢 Follow @${name} for live scores & breaking updates!\n#${tag} #LiveScores #Football #Matchday`,
-  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚽ Real-time scores & coverage on @${name}\n#${tag} #Football #LiveScore #Soccer`,
-  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔥 Stay updated with @${name} for live scores & instant results!\n#${tag} #Matchday #LiveScores #Football`,
-  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ Follow @${name} for ongoing match action & verified scores\n#${tag} #Soccer #LiveUpdates #Matchday`,
-  (name: string, tag: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 Match statistics & live scores powered by @${name}\n#${tag} #Football #GameScores #Scores`,
+// Rotating dynamic headers and greetings to eliminate repetitive starting structures across automated posts
+const LIVE_ROUNDUP_HEADERS = [
+  (count: number, timeStr: string) => `⚽ LIVE SCORES & ACTION • ${count} MATCH${count === 1 ? '' : 'ES'} IN PROGRESS (${timeStr})`,
+  (count: number, timeStr: string) => `⚡ ONGOING MATCHDAY ACTION • ${count} LIVE GAME${count === 1 ? '' : 'S'} (${timeStr})`,
+  (count: number, timeStr: string) => `📊 LIVE SCOREBOARD UPDATE • ${count} ACTIVE FIXTURE${count === 1 ? '' : 'S'} (${timeStr})`,
+  (count: number, timeStr: string) => `🔥 IN-PLAY SCORES & STATS • ${count} MATCH${count === 1 ? '' : 'ES'} LIVE NOW (${timeStr})`,
+  (count: number, timeStr: string) => `⏱️ REAL-TIME SCOREBOARD • ${count} GAME${count === 1 ? '' : 'S'} CURRENTLY PLAYING (${timeStr})`,
+  (count: number, timeStr: string) => `📢 LATEST LIVE SCORES • ${count} MATCH${count === 1 ? '' : 'ES'} UPDATE (${timeStr})`,
 ];
 
-export function getBrandedFooter(config?: FacebookPageConfig): string {
+const FT_ROUNDUP_HEADERS = [
+  (count: number) => `🏁 FULL-TIME RESULTS & WRAP-UP • ${count} FINISHED MATCH${count === 1 ? '' : 'ES'}`,
+  (count: number) => `⚽ FINAL SCORES & RESULTS • ${count} MATCH${count === 1 ? '' : 'ES'} COMPLETED`,
+  (count: number) => `📊 MATCHDAY FULL-TIME SCORES • ${count} GAME${count === 1 ? '' : 'S'} CONCLUDED`,
+  (count: number) => `🏆 FULL-TIME ROUNDUP • ${count} FINAL SCORELINE${count === 1 ? '' : 'S'}`,
+  (count: number) => `✅ OFFICIAL FULL-TIME RESULTS • ${count} COMPLETED FIXTURE${count === 1 ? '' : 'S'}`,
+  (count: number) => `⚡ FINAL WHISTLE RESULTS • ${count} MATCH${count === 1 ? '' : 'ES'} COMPLETE`,
+];
+
+const HT_ROUNDUP_HEADERS = [
+  (count: number) => `⏸️ HALF-TIME SCORES & INTERMISSION • ${count} MATCH${count === 1 ? '' : 'ES'}`,
+  (count: number) => `⚽ HALF-TIME BREAK SCORES • ${count} GAME${count === 1 ? '' : 'S'} AT THE INTERVAL`,
+  (count: number) => `📊 45' MINUTE SCORES UPDATE • ${count} FIXTURE${count === 1 ? '' : 'S'} AT HALF-TIME`,
+  (count: number) => `⚡ HALF-TIME SCOREBOARD • ${count} MATCH${count === 1 ? '' : 'ES'} PAUSED`,
+  (count: number) => `📢 FIRST HALF RECAP & SCORES • ${count} GAME${count === 1 ? '' : 'S'} AT HT`,
+  (count: number) => `⏱️ INTERMISSION SCOREBOARD • ${count} MATCH${count === 1 ? '' : 'ES'} AT HALF-TIME`,
+];
+
+// Rotating hashtag pools to eliminate repetitive hashtag footprints across consecutive posts
+const LIVE_HASHTAG_PACKS = [
+  ['#LiveScores', '#Football', '#Matchday', '#SoccerScores'],
+  ['#FootballLive', '#Scores', '#MatchdayLive', '#GameScores'],
+  ['#LiveFootball', '#InPlay', '#Soccer', '#FootballScores'],
+  ['#MatchdayAction', '#LiveUpdate', '#FootballNews', '#ScoresLive'],
+  ['#SoccerLive', '#Scoreline', '#MatchAlerts', '#FootballUpdates'],
+  ['#LiveScoreboard', '#Footy', '#SoccerGame', '#GoalUpdates'],
+];
+
+const FT_HASHTAG_PACKS = [
+  ['#FullTime', '#Results', '#FinalScores', '#Matchday'],
+  ['#FootballResults', '#FullTimeScores', '#GameScores', '#MatchSummary'],
+  ['#SoccerResults', '#FinalWhistle', '#Scores', '#FT'],
+  ['#MatchResults', '#FootballScores', '#ResultsRoundup', '#GameDay'],
+  ['#FootballWrapUp', '#FinalResult', '#MatchdayResults', '#FullTimeWhistle'],
+  ['#FootyResults', '#SoccerScores', '#FinalScore', '#ScoreUpdate'],
+];
+
+const HT_HASHTAG_PACKS = [
+  ['#HalfTime', '#HTScores', '#LiveFootball', '#GameScores'],
+  ['#HalfTimeUpdate', '#45Minutes', '#SoccerScores', '#Interval'],
+  ['#FirstHalfRecap', '#LiveScores', '#HalfTimeWhistle', '#Football'],
+  ['#HTScoreboard', '#InPlayScores', '#MatchdayLive', '#SoccerUpdate'],
+  ['#HalfTimeScores', '#FootballUpdate', '#ScoresLive', '#Matchday'],
+  ['#FirstHalf', '#SoccerLive', '#FootballScores', '#HTUpdate'],
+];
+
+export function getDynamicLiveRoundupHeader(count: number, timeStr: string, seed: number = Date.now()): string {
+  const index = Math.abs(Math.floor(seed / (1000 * 60 * 3))) % LIVE_ROUNDUP_HEADERS.length;
+  return LIVE_ROUNDUP_HEADERS[index](count, timeStr);
+}
+
+export function getDynamicFtRoundupHeader(count: number, seed: number = Date.now()): string {
+  const index = Math.abs(Math.floor(seed / (1000 * 60 * 3))) % FT_ROUNDUP_HEADERS.length;
+  return FT_ROUNDUP_HEADERS[index](count);
+}
+
+export function getDynamicHtRoundupHeader(count: number, seed: number = Date.now()): string {
+  const index = Math.abs(Math.floor(seed / (1000 * 60 * 3))) % HT_ROUNDUP_HEADERS.length;
+  return HT_ROUNDUP_HEADERS[index](count);
+}
+
+export function getRotatingHashtags(
+  type: 'LIVE' | 'FT' | 'HT' | 'GOAL' | 'CARD',
+  leagueTags: string[] = [],
+  seed: number = Date.now()
+): string {
+  const cleanTags = Array.from(
+    new Set(
+      leagueTags
+        .filter(Boolean)
+        .map(t => (t.startsWith('#') ? t : `#${t.replace(/[^a-zA-Z0-9]/g, '')}`))
+        .filter(t => t.length > 2)
+    )
+  ).slice(0, 2);
+
+  let pool = LIVE_HASHTAG_PACKS;
+  if (type === 'FT') pool = FT_HASHTAG_PACKS;
+  else if (type === 'HT') pool = HT_HASHTAG_PACKS;
+
+  const slotIndex = Math.abs(Math.floor(seed / (1000 * 60 * 4))) % pool.length;
+  const basePack = pool[slotIndex];
+
+  // Merge unique league-specific tags with selected rotating base tags
+  const combined = Array.from(new Set([...cleanTags, ...basePack]));
+  return combined.slice(0, 4).join(' ');
+}
+
+const FOOTER_SIGNATURES = [
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📢 Follow @${name} for live scores & verified updates!\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚽ Real-time scores & instant match coverage on @${name}\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔥 Stay updated with @${name} for live match scores & goal alerts!\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ Follow @${name} for ongoing pitch action & immediate results\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 Accurate match statistics & live updates powered by @${name}\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔔 Turn on notifications for @${name} to never miss a live score!\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📱 Track today's games and up-to-the-minute scores right here on @${name}\n${hashtags}`,
+  (name: string, tag: string, hashtags: string) => `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🌟 Your home for instant scores and complete football statistics: @${name}\n${hashtags}`,
+];
+
+export function getBrandedFooter(
+  config?: FacebookPageConfig,
+  type: 'LIVE' | 'FT' | 'HT' | 'GOAL' | 'CARD' = 'LIVE',
+  leagueTags: string[] = [],
+  seed: number = Date.now()
+): string {
   const name = config?.pageName?.trim() || 'GameScores';
   const tag = name.replace(/[^a-zA-Z0-9]/g, '') || 'GameScores';
-  // Pick rotating signature based on 5-minute time windows to prevent identical consecutive post signatures
-  const index = Math.floor(Date.now() / (1000 * 60 * 5)) % FOOTER_SIGNATURES.length;
-  return FOOTER_SIGNATURES[index](name, tag);
+  const pageTag = `#${tag}`;
+  const rotatingHashtags = getRotatingHashtags(type, [pageTag, ...leagueTags], seed);
+
+  // Rotate signature based on 3-minute time windows & pseudo-random variation
+  const index = Math.abs(Math.floor(seed / (1000 * 60 * 3))) % FOOTER_SIGNATURES.length;
+  return FOOTER_SIGNATURES[index](name, tag, rotatingHashtags);
 }
 
 export const MATCH_STATS_LEGEND = `━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -348,8 +457,12 @@ export function formatGoalPost(match: Match, event: MatchEvent, config: Facebook
   const minVal = getMinuteValue(event.minute, match.minute, match.statusText);
   const minStr = String(minVal);
   const period = minVal <= 45 ? '1st Half' : minVal <= 90 ? '2nd Half' : 'Extra Time';
+  const seed = Date.now();
 
-  let template = config.postTemplateGoal || "⚽ GOAL! {home_team} {home_score} - {away_score} {away_team}!\n⏱️ Match Time: {minute}' min ({period})\n👤 {player}\n🏆 {league_name}\n\n#{league_tag} #LiveScores #GameScores";
+  const GOAL_EMOJIS = ['⚽ GOAL!', '⚡ GOOOAL!', '🔥 BALL IN THE NET!', '🎯 GOAL!'];
+  const goalHeader = GOAL_EMOJIS[Math.abs(Math.floor(seed / 1000)) % GOAL_EMOJIS.length];
+
+  let template = config.postTemplateGoal || `${goalHeader} {home_team} {home_score} - {away_score} {away_team}!\n⏱️ Match Time: {minute}' min ({period})\n👤 {player}\n🏆 {league_name}\n\n#{league_tag} {hashtags}`;
   
   // If existing saved template doesn't have an explicit minute label, ensure the minute line is clear
   if (!template.includes('⏱️') && !template.includes('Match Time') && !template.includes('Minute')) {
@@ -359,6 +472,7 @@ export function formatGoalPost(match: Match, event: MatchEvent, config: Facebook
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
   const scoreLine = `${event.homeScore ?? match.homeScore} - ${event.awayScore ?? match.awayScore}`;
+  const rotatingHashtags = getRotatingHashtags('GOAL', [leagueTag, countryTag], seed);
   
   let playerStr = event.playerName ? `Scorer: ${event.playerName}` : 'Goal scored!';
   if (event.detail) {
@@ -381,15 +495,18 @@ export function formatGoalPost(match: Match, event: MatchEvent, config: Facebook
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
-    .replace(/{league_tag}/g, leagueTag);
+    .replace(/{league_tag}/g, leagueTag)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatYellowCardPost(match: Match, event: MatchEvent, config: FacebookPageConfig): string {
   const minVal = getMinuteValue(event.minute, match.minute, match.statusText);
   const minStr = String(minVal);
   const period = minVal <= 45 ? '1st Half' : minVal <= 90 ? '2nd Half' : 'Extra Time';
+  const seed = Date.now();
+  const rotatingHashtags = getRotatingHashtags('CARD', [], seed);
 
-  let template = config.postTemplateYellowCard || "🟨 YELLOW CARD! {player} ({team}) booked in the {minute}' min!\n⏱️ Match Time: {minute}' ({period})\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag} #GameScores #YellowCard";
+  let template = config.postTemplateYellowCard || "🟨 YELLOW CARD! {player} ({team}) booked in the {minute}' min!\n⏱️ Match Time: {minute}' ({period})\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag} {hashtags}";
 
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
@@ -410,15 +527,18 @@ export function formatYellowCardPost(match: Match, event: MatchEvent, config: Fa
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
-    .replace(/{league_tag}/g, leagueTag);
+    .replace(/{league_tag}/g, leagueTag)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatRedCardPost(match: Match, event: MatchEvent, config: FacebookPageConfig): string {
   const minVal = getMinuteValue(event.minute, match.minute, match.statusText);
   const minStr = String(minVal);
   const period = minVal <= 45 ? '1st Half' : minVal <= 90 ? '2nd Half' : 'Extra Time';
+  const seed = Date.now();
+  const rotatingHashtags = getRotatingHashtags('CARD', [], seed);
 
-  let template = config.postTemplateRedCard || "🟥 RED CARD! {team} player {player} sent off in the {minute}' min!\n⏱️ Match Time: {minute}' ({period})\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag} #GameScores #RedCard";
+  let template = config.postTemplateRedCard || "🟥 RED CARD! {team} player {player} sent off in the {minute}' min!\n⏱️ Match Time: {minute}' ({period})\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag} {hashtags}";
 
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
@@ -439,15 +559,18 @@ export function formatRedCardPost(match: Match, event: MatchEvent, config: Faceb
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
-    .replace(/{league_tag}/g, leagueTag);
+    .replace(/{league_tag}/g, leagueTag)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatCornerPost(match: Match, event: MatchEvent, config: FacebookPageConfig): string {
   const minVal = getMinuteValue(event.minute, match.minute, match.statusText);
   const minStr = String(minVal);
   const period = minVal <= 45 ? '1st Half' : minVal <= 90 ? '2nd Half' : 'Extra Time';
+  const seed = Date.now();
+  const rotatingHashtags = getRotatingHashtags('LIVE', [], seed);
 
-  let template = config.postTemplateCorner || "🚩 CORNER KICK! Corner awarded to {team} in the {minute}' min!\n⏱️ Match Time: {minute}' ({period})\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag} #GameScores #CornerKick";
+  let template = config.postTemplateCorner || "🚩 CORNER KICK! Corner awarded to {team} in the {minute}' min!\n⏱️ Match Time: {minute}' ({period})\n{home_team} {home_score} - {away_score} {away_team}\n🏆 {league_name}\n\n#{league_tag} {hashtags}";
 
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
@@ -474,11 +597,14 @@ export function formatCornerPost(match: Match, event: MatchEvent, config: Facebo
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
-    .replace(/{league_tag}/g, leagueTag);
+    .replace(/{league_tag}/g, leagueTag)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatKickoffPost(match: Match, config: FacebookPageConfig): string {
-  const template = config.postTemplateKickoff || "⚡ MATCH KICK-OFF! (1st Half)\n{home_team} vs {away_team}\n⏱️ Match Time: Kick-Off (1')\n🏆 {league_name}\n\nStay tuned for live score updates!\n#{league_tag} #GameScores";
+  const seed = Date.now();
+  const rotatingHashtags = getRotatingHashtags('LIVE', [], seed);
+  const template = config.postTemplateKickoff || "⚡ MATCH KICK-OFF! (1st Half)\n{home_team} vs {away_team}\n⏱️ Match Time: Kick-Off (1')\n🏆 {league_name}\n\nStay tuned for live score updates!\n#{league_tag} {hashtags}";
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
 
@@ -489,11 +615,14 @@ export function formatKickoffPost(match: Match, config: FacebookPageConfig): str
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
-    .replace(/{league_tag}/g, leagueTag);
+    .replace(/{league_tag}/g, leagueTag)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatHalfTimePost(match: Match, config: FacebookPageConfig): string {
-  const template = config.postTemplateHalfTime || "⏸️ HALF-TIME: {home_team} {home_score} - {away_score} {away_team}\n⏱️ Match Time: Half-Time (45')\n🏆 {league_name}\n\n#{league_tag} #GameScores";
+  const seed = Date.now();
+  const rotatingHashtags = getRotatingHashtags('HT', [], seed);
+  const template = config.postTemplateHalfTime || "⏸️ HALF-TIME: {home_team} {home_score} - {away_score} {away_team}\n⏱️ Match Time: Half-Time (45')\n🏆 {league_name}\n\n#{league_tag} {hashtags}";
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
 
@@ -506,11 +635,14 @@ export function formatHalfTimePost(match: Match, config: FacebookPageConfig): st
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
-    .replace(/{league_tag}/g, leagueTag);
+    .replace(/{league_tag}/g, leagueTag)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatFullTimePost(match: Match, config: FacebookPageConfig): string {
-  const template = config.postTemplateFullTime || "🏁 FULL-TIME: {home_team} {home_score} - {away_score} {away_team}\n⏱️ Match Time: Full-Time (90')\n🏆 {league_name}\n{stats_summary}\n\nThanks for following!\n#{league_tag} #GameScores";
+  const seed = Date.now();
+  const rotatingHashtags = getRotatingHashtags('FT', [], seed);
+  const template = config.postTemplateFullTime || "🏁 FULL-TIME: {home_team} {home_score} - {away_score} {away_team}\n⏱️ Match Time: Full-Time (90')\n🏆 {league_name}\n{stats_summary}\n\nThanks for following!\n#{league_tag} {hashtags}";
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
   
@@ -542,7 +674,8 @@ export function formatFullTimePost(match: Match, config: FacebookPageConfig): st
     .replace(/{country_tag}/g, countryTag)
     .replace(/{league_name}/g, leagueNameReplacement)
     .replace(/{league_tag}/g, leagueTag)
-    .replace(/{stats_summary}/g, statsSummary);
+    .replace(/{stats_summary}/g, statsSummary)
+    .replace(/{hashtags}/g, rotatingHashtags);
 }
 
 export function formatLiveRoundupPost(matches: Match[], config: FacebookPageConfig): string {
@@ -599,33 +732,45 @@ export function formatLiveRoundupPost(matches: Match[], config: FacebookPageConf
   }
 
   const matchesList = leagueSections.join('\n\n');
-  const footer = getBrandedFooter(config);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const seed = now.getTime();
+  const dynamicHeader = getDynamicLiveRoundupHeader(filteredMatches.length, timeStr, seed);
+  const leagueTags = Array.from(new Set(filteredMatches.map(m => m.league?.name ? m.league.name.replace(/[^a-zA-Z0-9]/g, '') : '').filter(Boolean)));
+  const rotatingHashtags = getRotatingHashtags('LIVE', leagueTags, seed);
+  const footer = getBrandedFooter(config, 'LIVE', leagueTags, seed);
 
   // If user has a custom template that includes {matches_list}, fill it
   if (config.postTemplateRoundup && config.postTemplateRoundup.trim() !== '') {
     let output = config.postTemplateRoundup
+      .replace(/{title}/g, dynamicHeader)
       .replace(/{count}/g, String(filteredMatches.length))
+      .replace(/{time}/g, timeStr)
       .replace(/{matches_list}/g, matchesList)
-      .replace(/{legend}/g, footer);
+      .replace(/{legend}/g, footer)
+      .replace(/{hashtags}/g, rotatingHashtags);
 
     // If template did not include {matches_list}, default to matchesList + footer
     if (!config.postTemplateRoundup.includes('{matches_list}')) {
-      return `${matchesList}\n${footer}`;
+      return `${dynamicHeader}\n\n${matchesList}\n\n${footer}`;
     }
     // If template has {matches_list} but lacks footer or page signature, append it
     if (!output.includes('Follow') && !output.includes('━━━━━━━━━━━━━━━━')) {
-      output = `${output}\n${footer}`;
+      output = `${output}\n\n${footer}`;
     }
     return output;
   }
 
-  // Default output matching Custom Hybrid branded layout
-  return `${matchesList}\n${footer}`;
+  // Default output matching dynamic non-repetitive layout
+  return `${dynamicHeader}\n\n${matchesList}\n\n${footer}`;
 }
 
 export function formatResultsRoundupPost(matches: Match[], config: FacebookPageConfig): string {
   if (!matches || matches.length === 0) {
-    return '🏁 FULL-TIME RESULTS ⚽\nNo new completed matches to report.\n#Results #FullTime #GameScores';
+    const seed = Date.now();
+    const dynamicHeader = getDynamicFtRoundupHeader(0, seed);
+    const tags = getRotatingHashtags('FT', [], seed);
+    return `${dynamicHeader}\nNo new completed matches to report at this time.\n\n${tags}`;
   }
 
   // Filter strictly by target leagues if configured
@@ -677,29 +822,38 @@ export function formatResultsRoundupPost(matches: Match[], config: FacebookPageC
   }
 
   const matchesList = leagueSections.join('\n\n');
-  const footer = getBrandedFooter(config);
+  const seed = Date.now();
+  const dynamicHeader = getDynamicFtRoundupHeader(filtered.length, seed);
+  const leagueTags = Array.from(new Set(filtered.map(m => m.league?.name ? m.league.name.replace(/[^a-zA-Z0-9]/g, '') : '').filter(Boolean)));
+  const rotatingHashtags = getRotatingHashtags('FT', leagueTags, seed);
+  const footer = getBrandedFooter(config, 'FT', leagueTags, seed);
 
   if (config.postTemplateFullTimeRoundup && config.postTemplateFullTimeRoundup.trim() !== '') {
     let output = config.postTemplateFullTimeRoundup
+      .replace(/{title}/g, dynamicHeader)
       .replace(/{count}/g, String(filtered.length))
       .replace(/{matches_list}/g, matchesList)
-      .replace(/{legend}/g, footer);
+      .replace(/{legend}/g, footer)
+      .replace(/{hashtags}/g, rotatingHashtags);
 
     if (!config.postTemplateFullTimeRoundup.includes('{matches_list}')) {
-      return `${matchesList}\n${footer}`;
+      return `${dynamicHeader}\n\n${matchesList}\n\n${footer}`;
     }
     if (!output.includes('Follow') && !output.includes('━━━━━━━━━━━━━━━━')) {
-      output = `${output}\n${footer}`;
+      output = `${output}\n\n${footer}`;
     }
     return output;
   }
 
-  return `${matchesList}\n${footer}`;
+  return `${dynamicHeader}\n\n${matchesList}\n\n${footer}`;
 }
 
 export function formatHalfTimeRoundupPost(matches: Match[], config: FacebookPageConfig): string {
   if (!matches || matches.length === 0) {
-    return '⏸️ HALF-TIME SCORES & UPDATES ⚽\nNo active matches currently at half-time.\n#HalfTime #LiveScores #GameScores';
+    const seed = Date.now();
+    const dynamicHeader = getDynamicHtRoundupHeader(0, seed);
+    const tags = getRotatingHashtags('HT', [], seed);
+    return `${dynamicHeader}\nNo active matches currently at half-time intermission.\n\n${tags}`;
   }
 
   // Filter strictly by target leagues if configured
@@ -711,7 +865,10 @@ export function formatHalfTimeRoundupPost(matches: Match[], config: FacebookPage
   }
 
   if (filtered.length === 0) {
-    return '⏸️ HALF-TIME SCORES & UPDATES ⚽\nNo matches from selected leagues currently at half-time.\n#HalfTime #LiveScores #GameScores';
+    const seed = Date.now();
+    const dynamicHeader = getDynamicHtRoundupHeader(0, seed);
+    const tags = getRotatingHashtags('HT', [], seed);
+    return `${dynamicHeader}\nNo matches from selected leagues currently at half-time.\n\n${tags}`;
   }
 
   // Group by country and league
@@ -761,25 +918,156 @@ export function formatHalfTimeRoundupPost(matches: Match[], config: FacebookPage
   }
 
   const matchesList = leagueSections.join('\n\n');
-  const footer = getBrandedFooter(config);
+  const seed = Date.now();
+  const dynamicHeader = getDynamicHtRoundupHeader(filtered.length, seed);
+  const leagueTags = Array.from(new Set(filtered.map(m => m.league?.name ? m.league.name.replace(/[^a-zA-Z0-9]/g, '') : '').filter(Boolean)));
+  const rotatingHashtags = getRotatingHashtags('HT', leagueTags, seed);
+  const footer = getBrandedFooter(config, 'HT', leagueTags, seed);
 
   if (config.postTemplateHalfTimeRoundup && config.postTemplateHalfTimeRoundup.trim() !== '') {
     let output = config.postTemplateHalfTimeRoundup
+      .replace(/{title}/g, dynamicHeader)
       .replace(/{count}/g, String(filtered.length))
       .replace(/{matches_list}/g, matchesList)
       .replace(/{legend}/g, footer)
-      .replace(/{hashtags}/g, '#HalfTime #LiveScores #GameScores');
+      .replace(/{hashtags}/g, rotatingHashtags);
 
     if (!config.postTemplateHalfTimeRoundup.includes('{matches_list}')) {
-      return `${matchesList}\n${footer}`;
+      return `${dynamicHeader}\n\n${matchesList}\n\n${footer}`;
     }
     if (!output.includes('Follow') && !output.includes('━━━━━━━━━━━━━━━━')) {
-      output = `${output}\n${footer}`;
+      output = `${output}\n\n${footer}`;
     }
     return output;
   }
 
-  return `⏸️ HALF-TIME SCORES & UPDATES ⚽\n📊 ${filtered.length} Match(es) at Half-Time\n\n${matchesList}\n\n${footer}`;
+  return `${dynamicHeader}\n\n${matchesList}\n\n${footer}`;
+}
+
+/**
+ * Async variants of formatters that query DeepSeek (or Gemini) when AI enhancement is active,
+ * seamlessly augmenting the headline, intro note, and hashtags while falling back to standard formatters.
+ */
+export async function formatLiveRoundupPostAsync(matches: Match[], config: FacebookPageConfig): Promise<string> {
+  const basePost = formatLiveRoundupPost(matches, config);
+  if (!config.enableAiPostEnhancement || !isAiGeneratorAvailable(config)) {
+    return basePost;
+  }
+
+  try {
+    const aiVar = await generatePostVariationWithAi({
+      type: 'LIVE',
+      summaryText: basePost.slice(0, 450),
+      matchCount: matches.length,
+      pageName: config.pageName,
+      config,
+    });
+
+    if (aiVar && aiVar.headline) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      const enrichedHeader = `${aiVar.headline} (${timeStr})`;
+      const enrichedHashtags = aiVar.hashtags && aiVar.hashtags.length > 0 ? aiVar.hashtags.join(' ') : '';
+      
+      let replaced = basePost;
+      const lines = replaced.split('\n');
+      if (lines.length > 0) {
+        lines[0] = enrichedHeader;
+        replaced = lines.join('\n');
+      }
+
+      if (aiVar.callToAction) {
+        replaced += `\n💬 ${aiVar.callToAction}`;
+      }
+
+      if (enrichedHashtags && !replaced.includes(enrichedHashtags.split(' ')[0])) {
+        replaced += `\n${enrichedHashtags}`;
+      }
+      return replaced;
+    }
+  } catch (err) {
+    console.warn('[Formatters] AI enhancement error, using base format:', err);
+  }
+
+  return basePost;
+}
+
+export async function formatResultsRoundupPostAsync(matches: Match[], config: FacebookPageConfig): Promise<string> {
+  const basePost = formatResultsRoundupPost(matches, config);
+  if (!config.enableAiPostEnhancement || !isAiGeneratorAvailable(config) || matches.length === 0) {
+    return basePost;
+  }
+
+  try {
+    const aiVar = await generatePostVariationWithAi({
+      type: 'FT',
+      summaryText: basePost.slice(0, 450),
+      matchCount: matches.length,
+      pageName: config.pageName,
+      config,
+    });
+
+    if (aiVar && aiVar.headline) {
+      const lines = basePost.split('\n');
+      if (lines.length > 0) {
+        lines[0] = aiVar.headline;
+      }
+      let replaced = lines.join('\n');
+      if (aiVar.callToAction) {
+        replaced += `\n💬 ${aiVar.callToAction}`;
+      }
+      if (aiVar.hashtags && aiVar.hashtags.length > 0) {
+        const tagLine = aiVar.hashtags.join(' ');
+        if (!replaced.includes(aiVar.hashtags[0])) {
+          replaced += `\n${tagLine}`;
+        }
+      }
+      return replaced;
+    }
+  } catch (err) {
+    console.warn('[Formatters] AI FT enhancement error, using base format:', err);
+  }
+
+  return basePost;
+}
+
+export async function formatHalfTimeRoundupPostAsync(matches: Match[], config: FacebookPageConfig): Promise<string> {
+  const basePost = formatHalfTimeRoundupPost(matches, config);
+  if (!config.enableAiPostEnhancement || !isAiGeneratorAvailable(config) || matches.length === 0) {
+    return basePost;
+  }
+
+  try {
+    const aiVar = await generatePostVariationWithAi({
+      type: 'HT',
+      summaryText: basePost.slice(0, 450),
+      matchCount: matches.length,
+      pageName: config.pageName,
+      config,
+    });
+
+    if (aiVar && aiVar.headline) {
+      const lines = basePost.split('\n');
+      if (lines.length > 0) {
+        lines[0] = aiVar.headline;
+      }
+      let replaced = lines.join('\n');
+      if (aiVar.callToAction) {
+        replaced += `\n💬 ${aiVar.callToAction}`;
+      }
+      if (aiVar.hashtags && aiVar.hashtags.length > 0) {
+        const tagLine = aiVar.hashtags.join(' ');
+        if (!replaced.includes(aiVar.hashtags[0])) {
+          replaced += `\n${tagLine}`;
+        }
+      }
+      return replaced;
+    }
+  } catch (err) {
+    console.warn('[Formatters] AI HT enhancement error, using base format:', err);
+  }
+
+  return basePost;
 }
 
 

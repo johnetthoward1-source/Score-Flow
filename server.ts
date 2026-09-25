@@ -14,7 +14,15 @@ import { flashscoreClient } from './server/scraper/flashscore_client.js';
 import { publisherQueue } from './server/publisher/queue.js';
 import { facebookPublisher } from './server/publisher/facebook_publisher.js';
 import { fbClient } from './server/publisher/facebook_client.js';
-import { formatLiveRoundupPost, formatResultsRoundupPost, formatHalfTimeRoundupPost } from './server/publisher/templates.js';
+import {
+  formatLiveRoundupPost,
+  formatResultsRoundupPost,
+  formatHalfTimeRoundupPost,
+  formatLiveRoundupPostAsync,
+  formatResultsRoundupPostAsync,
+  formatHalfTimeRoundupPostAsync,
+} from './server/publisher/templates.js';
+import { generatePostVariationWithAi, isAiGeneratorAvailable } from './server/services/ai_enhancer.js';
 import { FacebookPageConfig, Match, DailyLeagueSelection } from './server/types.js';
 
 async function startServer() {
@@ -1257,7 +1265,7 @@ async function startServer() {
       }
 
       const previewText = targetMatches.length > 0
-        ? formatLiveRoundupPost(targetMatches, fbConfig)
+        ? await formatLiveRoundupPostAsync(targetMatches, fbConfig)
         : `⚠️ No leagues are selected for today (${dailySelection.date}).\nPlease select one or more leagues in the League Selection panel to preview or publish games.`;
       res.json({
         success: true,
@@ -1426,7 +1434,7 @@ async function startServer() {
       }
 
       const matchesToPreview = filterPublished ? newMatches : matches;
-      const previewText = formatResultsRoundupPost(matchesToPreview, fbConfig);
+      const previewText = await formatResultsRoundupPostAsync(matchesToPreview, fbConfig);
 
       res.json({
         success: true,
@@ -1666,7 +1674,7 @@ async function startServer() {
       }
 
       const matchesToPreview = filterPublished ? newMatches : matches;
-      const previewText = formatHalfTimeRoundupPost(matchesToPreview, fbConfig);
+      const previewText = await formatHalfTimeRoundupPostAsync(matchesToPreview, fbConfig);
 
       res.json({
         success: true,
@@ -1861,6 +1869,55 @@ async function startServer() {
       });
     } catch (e: any) {
       res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Facebook: Test DeepSeek / AI connection
+  app.post('/api/facebook/test-ai-connection', adminAuthMiddleware, async (req, res) => {
+    try {
+      const fbConfig = await db.getSettings<FacebookPageConfig>('fbConfig', {
+        pageId: config.fbPageId,
+        isConnected: false,
+        autoPublishEnabled: false,
+      });
+
+      const apiKey = req.body?.deepseekApiKey?.trim() || fbConfig.deepseekApiKey || process.env.DEEPSEEK_API_KEY;
+      const model = req.body?.deepseekModel?.trim() || fbConfig.deepseekModel || 'deepseek-chat';
+
+      if (!apiKey) {
+        return res.status(400).json({
+          success: false,
+          error: 'No DeepSeek API Key provided. Please enter your DeepSeek API Key.',
+        });
+      }
+
+      const variation = await generatePostVariationWithAi({
+        type: 'LIVE',
+        summaryText: 'Premier League: Arsenal 1 - 0 Chelsea (34\')\nLa Liga: Real Madrid 2 - 1 Barcelona (67\')',
+        matchCount: 2,
+        pageName: fbConfig.pageName || 'GameScores',
+        config: {
+          ...fbConfig,
+          aiProvider: 'deepseek',
+          deepseekApiKey: apiKey,
+          deepseekModel: model,
+        },
+      });
+
+      if (!variation) {
+        return res.status(502).json({
+          success: false,
+          error: 'DeepSeek API responded with an error or returned invalid output. Please check your API key and quota at platform.deepseek.com.',
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'DeepSeek AI connected successfully!',
+        sample: variation,
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message || 'DeepSeek test failed' });
     }
   });
 

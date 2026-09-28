@@ -69,22 +69,6 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           setAdminUser(data.user);
           setToken(activeToken);
         } else {
-          // If unauthenticated and there's a default admin account, attempt auto-login
-          if (!activeToken && data.totalAdmins === 1) {
-            try {
-              const autoRes = await fetch('/api/admin/auto-login', { method: 'POST' });
-              const autoData = await autoRes.json();
-              if (autoData.success && autoData.token) {
-                localStorage.setItem(TOKEN_STORAGE_KEY, autoData.token);
-                setToken(autoData.token);
-                setAdminUser(autoData.user);
-                return;
-              }
-            } catch (autoErr) {
-              console.warn('[Auth] Auto-login error:', autoErr);
-            }
-          }
-
           setAdminUser(null);
           if (activeToken) {
             localStorage.removeItem(TOKEN_STORAGE_KEY);

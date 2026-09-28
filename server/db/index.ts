@@ -1618,15 +1618,26 @@ class DatabaseManager {
 
     // If no selection stored, initialize
     if (!stored) {
+      const fbConfig = await this.getSettings<FacebookPageConfig | null>('fbConfig', null);
+      const fallbackIds = (fbConfig && Array.isArray(fbConfig.targetLeagueIds)) ? fbConfig.targetLeagueIds : [];
       const initialSelection: DailyLeagueSelection = {
         date: today,
-        selectedLeagueIds: [],
+        selectedLeagueIds: fallbackIds,
         selectedLeagueNames: [],
         allLeaguesSelected: false,
         lastUpdated: new Date().toISOString(),
       };
       await this.saveSettings('dailyLeagueSelection', initialSelection);
       return initialSelection;
+    }
+
+    // If stored selection is empty but fbConfig has targetLeagueIds, restore them
+    if (!stored.selectedLeagueIds || stored.selectedLeagueIds.length === 0) {
+      const fbConfig = await this.getSettings<FacebookPageConfig | null>('fbConfig', null);
+      if (fbConfig && Array.isArray(fbConfig.targetLeagueIds) && fbConfig.targetLeagueIds.length > 0) {
+        stored.selectedLeagueIds = fbConfig.targetLeagueIds;
+        await this.saveSettings('dailyLeagueSelection', stored);
+      }
     }
 
     // If the date has advanced to a new day, roll the date forward but PRESERVE user's active league selection!

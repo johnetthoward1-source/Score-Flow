@@ -429,8 +429,16 @@ class SportsSyncEngine {
       return;
     }
 
+    // Ensure target leagues are synchronized with today's daily selection
+    const dailySelection = await db.getDailyLeagueSelection(fbConfig.timezone || 'UTC');
+    const effectiveTargetLeagues = (dailySelection.selectedLeagueIds && dailySelection.selectedLeagueIds.length > 0)
+      ? dailySelection.selectedLeagueIds
+      : (fbConfig.targetLeagueIds || []);
+
+    fbConfig.targetLeagueIds = effectiveTargetLeagues;
+
     // Must have target leagues selected for today
-    if (!fbConfig.targetLeagueIds || fbConfig.targetLeagueIds.length === 0) {
+    if (!effectiveTargetLeagues || effectiveTargetLeagues.length === 0) {
       return;
     }
 
@@ -766,7 +774,11 @@ class SportsSyncEngine {
     }
 
     // Strict daily league filter: only post games from leagues selected by the admin for today
-    if (!fbConfig.targetLeagueIds || fbConfig.targetLeagueIds.length === 0 || !fbConfig.targetLeagueIds.includes(match.league.id)) {
+    const targetLeagues = (fbConfig.targetLeagueIds && fbConfig.targetLeagueIds.length > 0)
+      ? fbConfig.targetLeagueIds
+      : (await db.getDailyLeagueSelection(fbConfig.timezone || 'UTC')).selectedLeagueIds || [];
+
+    if (!targetLeagues || targetLeagues.length === 0 || !targetLeagues.includes(match.league.id)) {
       return; // Skip this unselected league
     }
 

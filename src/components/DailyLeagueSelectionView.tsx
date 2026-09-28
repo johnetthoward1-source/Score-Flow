@@ -41,6 +41,8 @@ interface DailyLeagueSelectionViewProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
+const DAILY_LEAGUES_STORAGE_KEY = 'gamescores_daily_leagues_v2';
+
 export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> = ({
   onSelectionSaved,
   onNavigateToTab,
@@ -66,7 +68,7 @@ export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> =
     message: string;
   } | null>(null);
 
-  // Fetch daily selection status and leagues from server
+  // Fetch daily selection status and leagues from server with persistent fallback
   const fetchSelectionData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -78,25 +80,83 @@ export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> =
         setCurrentDate(json.currentDate || json.data?.date || new Date().toISOString().split('T')[0]);
         setTimezone(json.timezone || 'UTC');
 
-        const ids: string[] = json.data?.selectedLeagueIds || [];
+        let ids: string[] = Array.isArray(json.data?.selectedLeagueIds) ? json.data.selectedLeagueIds : [];
+        let names: string[] = Array.isArray(json.data?.selectedLeagueNames) ? json.data.selectedLeagueNames : [];
+
+        // If server returns empty list, check if user has a persistent local backup for today
+        if (ids.length === 0) {
+          try {
+            const rawCache = localStorage.getItem(DAILY_LEAGUES_STORAGE_KEY);
+            if (rawCache) {
+              const cached = JSON.parse(rawCache);
+              if (Array.isArray(cached.selectedLeagueIds) && cached.selectedLeagueIds.length > 0) {
+                ids = cached.selectedLeagueIds;
+                names = cached.selectedLeagueNames || [];
+                // Re-sync back to server in background
+                authFetch('/api/leagues/daily-selection', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    selectedLeagueIds: ids,
+                    selectedLeagueNames: names,
+                    allLeaguesSelected: false,
+                  }),
+                }).catch(() => {});
+              }
+            }
+          } catch {}
+        } else {
+          // Keep local storage up to date with server state
+          try {
+            localStorage.setItem(
+              DAILY_LEAGUES_STORAGE_KEY,
+              JSON.stringify({
+                selectedLeagueIds: ids,
+                selectedLeagueNames: names,
+                date: json.data?.date,
+              })
+            );
+          } catch {}
+        }
+
         setSelectedIds(ids);
 
         const leagues: AvailableLeagueItem[] = json.availableLeagues || [];
-        setAvailableLeagues(leagues);
 
         const nameMap = new Map<string, string>();
         for (const l of leagues) {
           nameMap.set(l.id, l.name);
         }
-        // Also map names already in daily selection
-        if (json.data?.selectedLeagueNames && json.data.selectedLeagueNames.length === ids.length) {
+
+        // Map names already in daily selection
+        if (Array.isArray(names)) {
           ids.forEach((id: string, idx: number) => {
-            if (!nameMap.has(id)) {
-              nameMap.set(id, json.data.selectedLeagueNames[idx]);
+            if (!nameMap.has(id) && names[idx]) {
+              nameMap.set(id, names[idx]);
             }
           });
         }
         setSelectedNamesMap(nameMap);
+
+        // Crucial: ensure all selected leagues exist in availableLeagues so they NEVER disappear from the UI
+        const existingIds = new Set(leagues.map((l) => l.id));
+        const mergedLeagues = [...leagues];
+        for (let i = 0; i < ids.length; i++) {
+          const id = ids[i];
+          if (!existingIds.has(id)) {
+            const leagueName = nameMap.get(id) || (names && names[i]) || id;
+            mergedLeagues.push({
+              id,
+              name: leagueName,
+              country: 'Selected League',
+              totalCount: 0,
+              liveCount: 0,
+              todayCount: 0,
+              isSelected: true,
+            });
+          }
+        }
+        setAvailableLeagues(mergedLeagues);
       }
     } catch (e: any) {
       console.warn('Error loading daily leagues:', e);
@@ -107,7 +167,7 @@ export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> =
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [authFetch]);
 
   useEffect(() => {
     fetchSelectionData();
@@ -181,6 +241,17 @@ export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> =
       }
 
       setDailySelection(json.data);
+      try {
+        localStorage.setItem(
+          DAILY_LEAGUES_STORAGE_KEY,
+          JSON.stringify({
+            selectedLeagueIds: selectedIds,
+            selectedLeagueNames: selectedNames,
+            date: json.data?.date || currentDate,
+          })
+        );
+      } catch {}
+
       setFeedbackNotice({
         type: 'success',
         message: `Saved! Today's game filter is active for ${selectedIds.length} league(s) on ${json.data?.date}. Games from unselected leagues will not be posted or displayed.`,
@@ -219,6 +290,10 @@ export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> =
 
       setSelectedIds([]);
       setDailySelection(json.data);
+      try {
+        localStorage.removeItem(DAILY_LEAGUES_STORAGE_KEY);
+      } catch {}
+
       setFeedbackNotice({
         type: 'info',
         message: `Cleared all league selections for today (${json.data?.date}). No games will be displayed or posted until leagues are selected.`,
@@ -264,6 +339,17 @@ export const DailyLeagueSelectionView: React.FC<DailyLeagueSelectionViewProps> =
         nameMap.set(l.id, l.name);
       }
       setSelectedNamesMap(nameMap);
+
+      try {
+        localStorage.setItem(
+          DAILY_LEAGUES_STORAGE_KEY,
+          JSON.stringify({
+            selectedLeagueIds: allIds,
+            selectedLeagueNames: allIds.map((id: string) => nameMap.get(id) || id),
+            date: json.data?.date || currentDate,
+          })
+        );
+      } catch {}
 
       setFeedbackNotice({
         type: 'success',

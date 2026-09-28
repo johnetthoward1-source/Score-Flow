@@ -658,10 +658,20 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
     setIsSaving(true);
     setStatusMessage(null);
     try {
+      const payload = {
+        ...updatedConfig,
+        targetLeagueIds:
+          (updatedConfig.targetLeagueIds && updatedConfig.targetLeagueIds.length > 0)
+            ? updatedConfig.targetLeagueIds
+            : (dailySelection?.selectedLeagueIds && dailySelection.selectedLeagueIds.length > 0)
+            ? dailySelection.selectedLeagueIds
+            : config.targetLeagueIds || [],
+      };
+
       const res = await authFetch('/api/facebook/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedConfig),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         throw new Error(`Server returned HTTP ${res.status}`);

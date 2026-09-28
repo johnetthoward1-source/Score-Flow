@@ -277,7 +277,7 @@ async function startServer() {
       }
 
       // Ensure user has admin rights in DB or create session
-      let admin = await db.getAdminByUsername(email);
+      let admin: any = await db.getAdminByUsername(email);
       if (!admin) {
         const allAdmins = await db.getAllAdmins();
         if (allAdmins.length > 0) {
@@ -1129,9 +1129,17 @@ async function startServer() {
       }
     }
 
+    const dailySelection = await db.getDailyLeagueSelection(current.timezone || 'UTC');
+    const preservedTargetLeagues = (Array.isArray(incoming.targetLeagueIds) && incoming.targetLeagueIds.length > 0)
+      ? incoming.targetLeagueIds
+      : (current.targetLeagueIds && current.targetLeagueIds.length > 0)
+      ? current.targetLeagueIds
+      : dailySelection.selectedLeagueIds || [];
+
     const updated: FacebookPageConfig = {
       ...current,
       ...incoming,
+      targetLeagueIds: preservedTargetLeagues,
       pageAccessToken: pageAccessTokenToUse,
       publishingMode: 'roundup',
       isConnected: Boolean(pageIdToUse && pageAccessTokenToUse),

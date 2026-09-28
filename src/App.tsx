@@ -9,6 +9,7 @@ import { DailyLeagueSelectionView } from './components/DailyLeagueSelectionView'
 import { ApiConsoleView } from './components/ApiConsoleView';
 import { SystemMonitoringView } from './components/SystemMonitoringView';
 import { AdminAuthModal } from './components/AdminAuthModal';
+import { GoogleLoginPage } from './components/GoogleLoginPage';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { Match, SystemStatus } from './types';
 import { Radio, Calendar, CheckCircle, Bell, Trophy, Globe, Clock, ChevronRight } from 'lucide-react';
@@ -421,10 +422,32 @@ function DashboardContent() {
   );
 }
 
+function MainContainer() {
+  const { isAuthenticated, isGoogleAuthenticated, isLoading } = useAdminAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 text-slate-400">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold tracking-wider uppercase text-slate-500">
+          Loading ScoreFlow Operations...
+        </p>
+      </div>
+    );
+  }
+
+  // Google Login MUST BE the first page whenever user is not signed in
+  if (!isAuthenticated && !isGoogleAuthenticated) {
+    return <GoogleLoginPage />;
+  }
+
+  return <DashboardContent />;
+}
+
 export default function App() {
   return (
     <AdminAuthProvider>
-      <DashboardContent />
+      <MainContainer />
     </AdminAuthProvider>
   );
 }

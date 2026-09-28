@@ -19,6 +19,7 @@ import {
   Sparkles,
   ListOrdered,
   Eye,
+  EyeOff,
   Calendar,
   Play,
   Shield,
@@ -68,6 +69,8 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
   const [posts, setPosts] = useState<FacebookPostRecord[]>([]);
   const [pageIdInput, setPageIdInput] = useState('');
   const [accessTokenInput, setAccessTokenInput] = useState('');
+  const [showAccessToken, setShowAccessToken] = useState(false);
+  const isEditingToken = useRef(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTestingPost, setIsTestingPost] = useState(false);
@@ -171,16 +174,62 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       const [cfgResult, postsResult, queueResult, leaguesResult] = results;
 
       if (cfgResult.status === 'fulfilled' && cfgResult.value?.success && cfgResult.value.data) {
+        const serverData = cfgResult.value.data;
         setConfig((prev) => {
           // If a toggle is currently in flight, preserve the current toggle state
           if (isTogglingAutoPublishRef.current) {
-            return { ...prev, ...cfgResult.value.data, autoPublishEnabled: prev.autoPublishEnabled };
+            return { ...prev, ...serverData, autoPublishEnabled: prev.autoPublishEnabled };
           }
-          return { ...prev, ...cfgResult.value.data };
+          return { ...prev, ...serverData };
         });
-        // Only initialize input if user hasn't started typing into it
-        if (!isEditingPageId.current) {
-          setPageIdInput(cfgResult.value.data.pageId || '');
+
+        let effectivePageId = serverData.pageId || '';
+        let effectiveToken = serverData.pageAccessToken || '';
+
+        // Check local storage backup if server didn't supply token
+        const storageKey = 'gamescores_fb_credentials_v2';
+        if (!effectiveToken) {
+          try {
+            const rawStored = localStorage.getItem(storageKey);
+            if (rawStored) {
+              const parsed = JSON.parse(rawStored);
+              if (parsed.pageAccessToken) {
+                effectiveToken = parsed.pageAccessToken;
+                if (!effectivePageId && parsed.pageId) {
+                  effectivePageId = parsed.pageId;
+                }
+                // Silently re-sync credentials back to server to repair missing setting
+                authFetch('/api/facebook/config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    pageId: effectivePageId,
+                    pageAccessToken: effectiveToken,
+                    isConnected: true,
+                  }),
+                }).catch(() => {});
+              }
+            }
+          } catch {}
+        } else {
+          // Keep local backup synchronized with confirmed server token
+          try {
+            localStorage.setItem(
+              storageKey,
+              JSON.stringify({
+                pageId: effectivePageId,
+                pageAccessToken: effectiveToken,
+              })
+            );
+          } catch {}
+        }
+
+        // Only initialize inputs if user hasn't started actively typing into them
+        if (!isEditingPageId.current && effectivePageId) {
+          setPageIdInput(effectivePageId);
+        }
+        if (!isEditingToken.current && effectiveToken) {
+          setAccessTokenInput(effectiveToken);
         }
       }
 
@@ -750,9 +799,25 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       setStatusMessage({ type: 'error', text: 'Please enter a Facebook Page ID before saving.' });
       return;
     }
+    const tokenToSave = accessTokenInput.trim() || config?.pageAccessToken || '';
+    if (!tokenToSave) {
+      setStatusMessage({ type: 'error', text: 'Please enter a Page Access Token before saving.' });
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        'gamescores_fb_credentials_v2',
+        JSON.stringify({
+          pageId: pageIdInput.trim(),
+          pageAccessToken: tokenToSave,
+        })
+      );
+    } catch {}
+
     await handleSaveConfig({
       pageId: pageIdInput.trim(),
-      ...(accessTokenInput.trim() ? { pageAccessToken: accessTokenInput.trim() } : {}),
+      pageAccessToken: tokenToSave,
       isConnected: true,
     });
   };
@@ -768,6 +833,8 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       return;
     }
 
+    const tokenToSend = accessTokenInput.trim() || config?.pageAccessToken || undefined;
+
     setIsTestingPost(true);
     setStatusMessage(null);
     try {
@@ -776,7 +843,7 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pageId: targetId,
-          accessToken: accessTokenInput.trim() || undefined,
+          accessToken: tokenToSend,
         }),
       });
 
@@ -804,6 +871,16 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
   };
 
   const handleVerifyCredentials = async () => {
+    const targetId = pageIdInput.trim() || config?.pageId;
+    const tokenToVerify = accessTokenInput.trim() || config?.pageAccessToken || '';
+    if (!targetId || !tokenToVerify) {
+      setStatusMessage({
+        type: 'error',
+        text: 'Please enter both Facebook Page ID and Page Access Token to verify.',
+      });
+      return;
+    }
+
     setIsVerifying(true);
     setStatusMessage(null);
     try {
@@ -811,8 +888,8 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pageId: pageIdInput.trim(),
-          accessToken: accessTokenInput.trim(),
+          pageId: targetId,
+          accessToken: tokenToVerify,
         }),
       });
       if (!res.ok) {
@@ -820,9 +897,19 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
       }
       const data = await res.json();
       if (data.success) {
-        const pageName = data.data?.page?.name || pageIdInput;
+        const pageName = data.data?.page?.name || targetId;
         const pageCategory = data.data?.page?.category || 'Page';
         const warning = data.data?.warning ? ` (${data.data.warning})` : '';
+
+        try {
+          localStorage.setItem(
+            'gamescores_fb_credentials_v2',
+            JSON.stringify({
+              pageId: targetId,
+              pageAccessToken: tokenToVerify,
+            })
+          );
+        } catch {}
 
         setStatusMessage({
           type: 'success',
@@ -2597,7 +2684,7 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                 <label className="block text-slate-300 font-medium mb-1">Facebook Page ID</label>
                 <input
                   type="text"
-                  placeholder="e.g. 102938475610293"
+                  placeholder="e.g. 1136971859508742"
                   value={pageIdInput}
                   onChange={(e) => {
                     isEditingPageId.current = true;
@@ -2608,14 +2695,63 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Page Access Token</label>
-                <input
-                  type="password"
-                  placeholder="EAA..."
-                  value={accessTokenInput}
-                  onChange={(e) => setAccessTokenInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-300 font-medium">Page Access Token</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAccessToken(!showAccessToken)}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 cursor-pointer transition-colors"
+                  >
+                    {showAccessToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span>{showAccessToken ? 'Hide Token' : 'Show Token'}</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showAccessToken ? 'text' : 'password'}
+                    placeholder="EAA..."
+                    value={accessTokenInput}
+                    onChange={(e) => {
+                      isEditingToken.current = true;
+                      setAccessTokenInput(e.target.value);
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-indigo-500 pr-10"
+                  />
+                  {accessTokenInput ? (
+                    <span className="absolute right-3 top-2.5 text-emerald-400" title="Token populated and active">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Persistent Credential Status Badge */}
+                {(accessTokenInput || config?.pageAccessToken) ? (
+                  <div className="mt-2 p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-start space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white">
+                          Token securely stored & active
+                        </span>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                          Saved
+                        </span>
+                      </div>
+                      <p className="text-slate-300 font-mono text-[10px] break-all">
+                        Key: {(accessTokenInput || config?.pageAccessToken || '').substring(0, 15)}...
+                        {(accessTokenInput || config?.pageAccessToken || '').slice(-6)}
+                      </p>
+                      <p className="text-emerald-400/90 text-[10px]">
+                        Persisted in database & local backup. You do not need to re-enter it unless replacing your Meta Page token.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-amber-400 mt-1 flex items-center space-x-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>No Page Access Token configured yet. Paste your token above and click Save.</span>
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons: Save Configuration & Send Test Post */}

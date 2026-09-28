@@ -86,6 +86,7 @@ class DatabaseManager {
     settings: {
       fbConfig: {
         pageId: config.fbPageId,
+        pageAccessToken: config.fbPageAccessToken || undefined,
         pageName: '',
         category: 'Sports Team / Media',
         link: '',

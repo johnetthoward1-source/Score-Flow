@@ -45381,10 +45381,10 @@
       "homeScore": 0,
       "awayScore": 0,
       "status": "IN_PLAY",
-      "statusText": "4' (1st Half)",
-      "minute": 4,
+      "statusText": "22' (1st Half)",
+      "minute": 22,
       "startTime": "2026-09-28T09:00:00.000Z",
-      "lastUpdated": "2026-09-28T09:04:40.622Z"
+      "lastUpdated": "2026-09-28T09:22:01.202Z"
     },
     "AF8SYdBk": {
       "id": "AF8SYdBk",
@@ -45405,12 +45405,12 @@
         "name": "RTC"
       },
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "status": "IN_PLAY",
-      "statusText": "4' (1st Half)",
-      "minute": 4,
+      "statusText": "22' (1st Half)",
+      "minute": 22,
       "startTime": "2026-09-28T09:00:00.000Z",
-      "lastUpdated": "2026-09-28T09:04:40.650Z"
+      "lastUpdated": "2026-09-28T09:22:01.240Z"
     },
     "Ey9ZMvNs": {
       "id": "Ey9ZMvNs",
@@ -45433,10 +45433,10 @@
       "homeScore": 0,
       "awayScore": 0,
       "status": "IN_PLAY",
-      "statusText": "4' (1st Half)",
-      "minute": 4,
+      "statusText": "22' (1st Half)",
+      "minute": 22,
       "startTime": "2026-09-28T09:00:00.000Z",
-      "lastUpdated": "2026-09-28T09:04:40.681Z"
+      "lastUpdated": "2026-09-28T09:22:01.266Z"
     }
   },
   "events": {
@@ -102209,6 +102209,19 @@
         "awayScore": 4,
         "createdAt": "2026-09-28T04:56:33.913Z"
       }
+    ],
+    "AF8SYdBk": [
+      {
+        "id": "ev_AF8SYdBk_1790586532340_GOAL",
+        "matchId": "AF8SYdBk",
+        "type": "GOAL",
+        "minute": 8,
+        "teamSide": "away",
+        "playerName": "RTC",
+        "homeScore": 0,
+        "awayScore": 1,
+        "createdAt": "2026-09-28T09:08:52.340Z"
+      }
     ]
   },
   "facebookPosts": [
@@ -104186,9 +104199,9 @@
       "pageId": "1136971859508742",
       "pageName": "GameScores",
       "category": "Sports",
-      "link": "",
+      "link": "https://www.facebook.com/1136971859508742",
       "isConnected": true,
-      "autoPublishEnabled": true,
+      "autoPublishEnabled": false,
       "publishGoals": true,
       "publishRedCards": true,
       "publishKickoff": true,
@@ -104209,7 +104222,8 @@
       "publishingMode": "roundup",
       "lastFtRoundupPublishedAt": "2026-09-28T09:02:34.002Z",
       "pageAccessToken": "EAAO0s9GYGRQBSQ4b1LEvdBmBpD9PyFGvN3La3wTX7yzbixZCQv5mnODXi3HEltCqfGBaArGngSsYP3bbkTxax6ZBcKHB4pcjCRJFXe3hYSy84dfOwblBXHW3flu8dGC00JpAw0cHyJdlyipsatTzEetC3R2aT1HkpCLDDF9cy7XZCMAZAHlZCl6QvA6CHwhNPbSSZA",
-      "lastHtRoundupPublishedAt": "2026-09-27T16:45:06.780Z"
+      "lastHtRoundupPublishedAt": "2026-09-27T16:45:06.780Z",
+      "timezone": "UTC"
     },
     "scraperSettings": {
       "activeProviderId": "flashscore",
@@ -106546,7 +106560,7 @@
       "salt": "d2ea96915df2d18de66b2af60e44bc16",
       "role": "superadmin",
       "createdAt": "2026-09-21T08:51:21.367Z",
-      "lastLogin": "2026-09-21T08:51:32.415Z"
+      "lastLogin": "2026-09-28T09:17:47.146Z"
     }
   ],
   "adminSessions": [
@@ -106565,14 +106579,6 @@
       "role": "superadmin",
       "createdAt": "2026-09-21T11:50:28.342Z",
       "expiresAt": "2026-09-28T11:50:28.342Z"
-    },
-    {
-      "token": "6fa2ca29cc122c48cb526212aa0aed3b116dfa94ab385c2648a36f4c6c723b28",
-      "adminId": "admin_6d311a47c46ed701",
-      "username": "admin",
-      "role": "superadmin",
-      "createdAt": "2026-09-21T11:50:28.481Z",
-      "expiresAt": "2026-09-28T11:50:28.481Z"
     },
     {
       "token": "da9d4e2b95ba42d37f4a0089f722ab7bf5410810988a10163c4f31422fad51ae",
@@ -106597,6 +106603,14 @@
       "role": "superadmin",
       "createdAt": "2026-09-28T09:04:39.970Z",
       "expiresAt": "2026-10-05T09:04:39.970Z"
+    },
+    {
+      "token": "c287298599674b330ddf3f5e131830cbc8df22a16e5c08c61328878c63b63385",
+      "adminId": "admin_6d311a47c46ed701",
+      "username": "admin",
+      "role": "superadmin",
+      "createdAt": "2026-09-28T09:17:47.173Z",
+      "expiresAt": "2026-10-05T09:17:47.173Z"
     }
   ]
 }

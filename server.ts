@@ -1050,6 +1050,8 @@ async function startServer() {
         success: true,
         data: {
           ...fbConfig,
+          pageId: fbConfig.pageId || config.fbPageId,
+          pageAccessToken: fbConfig.pageAccessToken || config.fbPageAccessToken,
           publishingMode: 'roundup',
           roundupIntervalMinutes: fbConfig.roundupIntervalMinutes || 5,
           timezone: fbConfig.timezone || 'UTC',
@@ -1113,8 +1115,12 @@ async function startServer() {
       postTemplateFullTime: '',
     });
 
-    let pageAccessTokenToUse = incoming.pageAccessToken || current.pageAccessToken;
-    const pageIdToUse = incoming.pageId || current.pageId;
+    let pageAccessTokenToUse = (incoming.pageAccessToken && incoming.pageAccessToken.trim())
+      ? incoming.pageAccessToken.trim()
+      : (current.pageAccessToken || config.fbPageAccessToken || '');
+    const pageIdToUse = (incoming.pageId && incoming.pageId.trim())
+      ? incoming.pageId.trim()
+      : (current.pageId || config.fbPageId || '');
 
     // Only verify with Meta Graph API if new credentials were explicitly passed in the request
     const credentialsProvided = Boolean(incoming.pageId || incoming.pageAccessToken);
@@ -1213,8 +1219,9 @@ async function startServer() {
   // Facebook: Verify Page Credentials with Meta Graph API
   app.post('/api/facebook/verify', async (req, res) => {
     const { pageId, accessToken } = req.body;
-    const targetPageId = pageId || config.fbPageId;
-    const targetToken = accessToken || config.fbPageAccessToken;
+    const curConfig = (await db.getSettings<FacebookPageConfig>('fbConfig', {} as any)) || ({} as FacebookPageConfig);
+    const targetPageId = (pageId && pageId.trim()) || curConfig.pageId || config.fbPageId;
+    const targetToken = (accessToken && accessToken.trim()) || curConfig.pageAccessToken || config.fbPageAccessToken;
 
     if (!targetPageId || !targetToken) {
       return res.status(400).json({

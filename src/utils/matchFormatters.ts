@@ -141,9 +141,10 @@ export function formatSingleMatchPost(match: Match, stats?: MatchStats | null, e
   // Match time & header
   const st = (match.statusText || '').trim();
   let timeBadge = '';
+  const isHT = match.status === 'PAUSED' || st.toLowerCase().includes('ht') || st.toLowerCase().includes('half time');
   if (match.status === 'FINISHED') {
     timeBadge = 'FT';
-  } else if (match.status === 'PAUSED' || st.toLowerCase().includes('ht')) {
+  } else if (isHT) {
     timeBadge = "HT (45')";
   } else if (match.minute && match.minute > 0) {
     if (st.match(/\d+\+\d+/)) {
@@ -157,8 +158,19 @@ export function formatSingleMatchPost(match: Match, stats?: MatchStats | null, e
     timeBadge = st || 'LIVE';
   }
 
+  let homeSc = match.homeScore;
+  let awaySc = match.awayScore;
+
+  if (isHT && match.periodScores?.half1Home !== undefined && match.periodScores?.half1Away !== undefined) {
+    homeSc = match.periodScores.half1Home;
+    awaySc = match.periodScores.half1Away;
+  } else if (match.status === 'FINISHED' && match.periodScores?.half1Home !== undefined && match.periodScores?.half1Away !== undefined) {
+    if (match.periodScores.half1Home > homeSc) homeSc = match.periodScores.half1Home;
+    if (match.periodScores.half1Away > awaySc) awaySc = match.periodScores.half1Away;
+  }
+
   const icon = match.status === 'FINISHED' ? '🏁' : '⚡';
-  const matchLine = `${icon} ${timeBadge} | ${match.homeTeam.name} ${match.homeScore} - ${match.awayScore} ${match.awayTeam.name}`;
+  const matchLine = `${icon} ${timeBadge} | ${match.homeTeam.name} ${homeSc} - ${awaySc} ${match.awayTeam.name}`;
 
   const lines = [header, matchLine];
 
@@ -171,21 +183,42 @@ export function formatSingleMatchPost(match: Match, stats?: MatchStats | null, e
   let h2Away = p?.half2Away;
 
   if (h1Home === undefined && evList.length > 0 && (match.minute && match.minute > 45)) {
-    h1Home = evList.filter((e) => e.teamSide === 'home' && e.type === 'GOAL' && e.minute <= 45).length;
-    h1Away = evList.filter((e) => e.teamSide === 'away' && e.type === 'GOAL' && e.minute <= 45).length;
+    h1Home = evList.filter((e) => e.teamSide === 'home' && e.type === 'GOAL' && (e.minute || 0) <= 45).length;
+    h1Away = evList.filter((e) => e.teamSide === 'away' && e.type === 'GOAL' && (e.minute || 0) <= 45).length;
   }
 
   if (h1Home !== undefined && h1Away !== undefined) {
-    if (h2Home === undefined && h2Away === undefined && (match.status === 'FINISHED' || (match.minute && match.minute > 45))) {
-      h2Home = Math.max(0, match.homeScore - h1Home);
-      h2Away = Math.max(0, match.awayScore - h1Away);
+    let ftHome = match.homeScore;
+    let ftAway = match.awayScore;
+    let htHome = h1Home;
+    let htAway = h1Away;
+
+    // Guard against inverted / swapped HT and FT data (HT can never exceed FT)
+    if (htHome > ftHome) {
+      const temp = ftHome;
+      ftHome = htHome;
+      htHome = temp;
     }
-    if (h2Home !== undefined && h2Away !== undefined) {
-      const secondHalfLabel = match.status === 'FINISHED' ? 'FT' : '2nd Half';
-      const secondHalfScore = match.status === 'FINISHED' ? `${match.homeScore}-${match.awayScore}` : `${h2Home}-${h2Away}`;
-      lines.push(`  📊 HT: ${h1Home}-${h1Away} | ${secondHalfLabel}: ${secondHalfScore}`);
+    if (htAway > ftAway) {
+      const temp = ftAway;
+      ftAway = htAway;
+      htAway = temp;
+    }
+
+    if (match.status === 'FINISHED') {
+      // For finished matches, scoreboard standard displays Full-Time score first, then Half-Time:
+      lines.push(`  📊 FT: ${ftHome}-${ftAway} | HT: ${htHome}-${htAway}`);
     } else {
-      lines.push(`  📊 HT: ${h1Home}-${h1Away}`);
+      // In-play (e.g. 2nd half): show HT score and current 2nd Half breakdown
+      if (h2Home === undefined && h2Away === undefined) {
+        h2Home = Math.max(0, ftHome - htHome);
+        h2Away = Math.max(0, ftAway - htAway);
+      }
+      if (h2Home !== undefined && h2Away !== undefined) {
+        lines.push(`  📊 HT: ${htHome}-${htAway} | 2nd Half: ${h2Home}-${h2Away}`);
+      } else {
+        lines.push(`  📊 HT: ${htHome}-${htAway}`);
+      }
     }
   }
 

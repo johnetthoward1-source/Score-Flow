@@ -1956,8 +1956,12 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                           </p>
                         </div>
                         <div className="text-right font-mono font-bold text-sm bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg space-y-0.5 shrink-0">
-                          <p className="text-emerald-400">{m.score?.home ?? 0}</p>
-                          <p className="text-emerald-400">{m.score?.away ?? 0}</p>
+                          <p className="text-cyan-400">
+                            {m.periodScores?.half1Home ?? m.homeScore ?? 0}
+                          </p>
+                          <p className="text-cyan-400">
+                            {m.periodScores?.half1Away ?? m.awayScore ?? 0}
+                          </p>
                         </div>
                       </div>
 
@@ -2340,9 +2344,16 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
 
                       <div className="flex items-center justify-between font-semibold text-xs text-white">
                         <span className="truncate pr-2">{m.homeTeam.name}</span>
-                        <span className="font-mono text-amber-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-sm">
-                          {m.homeScore} - {m.awayScore}
-                        </span>
+                        <div className="text-center shrink-0">
+                          <span className="font-mono text-amber-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-sm">
+                            {m.homeScore} - {m.awayScore}
+                          </span>
+                          {m.periodScores?.half1Home !== undefined && m.periodScores?.half1Away !== undefined && (
+                            <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
+                              HT: {m.periodScores.half1Home}-{m.periodScores.half1Away}
+                            </span>
+                          )}
+                        </div>
                         <span className="truncate pl-2 text-right">{m.awayTeam.name}</span>
                       </div>
 
@@ -3061,7 +3072,31 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
               />
             </div>
 
-            {/* 6. Full-Time Whistle Template */}
+            {/* 6. Half-Time Whistle Template */}
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <label className="text-cyan-300 font-bold flex items-center space-x-1.5 text-xs">
+                  <span>⏸️</span>
+                  <span>Half-Time Intermission Whistle Template</span>
+                </label>
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded font-mono">
+                  Tags: {'{home_team}'}, {'{away_team}'}, {'{home_score}'}, {'{away_score}'}, {'{ht_score}'}, {'{league_name}'}, {'{league_tag}'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Dispatched when a match reaches 45' half-time intermission. Uses the verified 1st half score.
+              </p>
+              <textarea
+                id="template-halftime"
+                rows={4}
+                placeholder="⏸️ HALF-TIME: {home_team} {home_score} - {away_score} {away_team}&#10;🏆 {league_name}"
+                value={config.postTemplateHalfTime || ''}
+                onChange={(e) => setConfig({ ...config, postTemplateHalfTime: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            {/* 7. Full-Time Whistle Template */}
             <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-1.5">
                 <label className="text-slate-200 font-bold flex items-center space-x-1.5 text-xs">
@@ -3069,7 +3104,7 @@ export const FacebookPublisherView: React.FC<FacebookPublisherViewProps> = ({ in
                   <span>Full-Time Whistle Template</span>
                 </label>
                 <span className="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-mono">
-                  Tags: {'{home_team}'}, {'{away_team}'}, {'{home_score}'}, {'{away_score}'}, {'{league_name}'}, {'{league_country}'}, {'{stats_summary}'}, {'{league_tag}'}
+                  Tags: {'{home_team}'}, {'{away_team}'}, {'{home_score}'}, {'{away_score}'}, {'{ht_score}'}, {'{ft_score}'}, {'{league_name}'}, {'{stats_summary}'}, {'{league_tag}'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">

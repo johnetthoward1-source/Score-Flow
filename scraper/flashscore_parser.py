@@ -60,6 +60,25 @@ def parse_flashscore_feed(raw_text: str) -> List[Dict[str, Any]]:
             home_score = int(raw_home_score) if raw_home_score.isdigit() else 0
             away_score = int(raw_away_score) if raw_away_score.isdigit() else 0
 
+            # 1st half score (BC, BD)
+            raw_h1_h = data.get('BC', '')
+            raw_h1_a = data.get('BD', '')
+            h1_h = int(raw_h1_h) if raw_h1_h.isdigit() else None
+            h1_a = int(raw_h1_a) if raw_h1_a.isdigit() else None
+
+            # Anti-swap validation: in football, 1st half score can never exceed total match score
+            if h1_h is not None and h1_h > home_score:
+                home_score, h1_h = h1_h, home_score
+            if h1_a is not None and h1_a > away_score:
+                away_score, h1_a = h1_a, away_score
+
+            period_scores = None
+            if h1_h is not None or h1_a is not None:
+                period_scores = {
+                    'half1Home': h1_h,
+                    'half1Away': h1_a,
+                }
+
             # Match status mapping
             # AB: 1 = Scheduled, 2 = Live / In progress, 3 = Finished, 4 = Postponed, 5 = Cancelled, etc.
             status_code = data.get('AB', '1')
@@ -128,6 +147,7 @@ def parse_flashscore_feed(raw_text: str) -> List[Dict[str, Any]]:
                 },
                 'homeScore': home_score,
                 'awayScore': away_score,
+                'periodScores': period_scores,
                 'status': status,
                 'statusText': status_text or ('Live' if status == 'IN_PLAY' else status),
                 'minute': minute,

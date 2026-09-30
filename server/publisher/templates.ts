@@ -290,9 +290,10 @@ export const MATCH_STATS_LEGEND = `━━━━━━━━━━━━━━━
 function getFormattedMatchLine(m: Match): string {
   const st = (m.statusText || '').trim();
   let timeBadge = '';
+  const isHT = m.status === 'PAUSED' || st.toLowerCase().includes('ht') || st.toLowerCase().includes('half time');
   if (m.status === 'FINISHED') {
     timeBadge = 'FT';
-  } else if (m.status === 'PAUSED' || st.toLowerCase().includes('ht') || st.toLowerCase().includes('half time')) {
+  } else if (isHT) {
     timeBadge = "HT (45')";
   } else if (m.minute && m.minute > 0) {
     if (st.match(/\d+\+\d+/)) {
@@ -306,11 +307,28 @@ function getFormattedMatchLine(m: Match): string {
     timeBadge = st || 'LIVE';
   }
 
+  let homeSc = m.homeScore;
+  let awaySc = m.awayScore;
+
+  // If match is currently at half-time, ensure the score displayed is the verified HT score
+  if (isHT && m.periodScores?.half1Home !== undefined && m.periodScores?.half1Away !== undefined) {
+    homeSc = m.periodScores.half1Home;
+    awaySc = m.periodScores.half1Away;
+  } else if (m.status === 'FINISHED' && m.periodScores?.half1Home !== undefined && m.periodScores?.half1Away !== undefined) {
+    // If the feed had HT score mistakenly higher than FT score due to inverted fields, correct it
+    if (m.periodScores.half1Home > homeSc) {
+      homeSc = m.periodScores.half1Home;
+    }
+    if (m.periodScores.half1Away > awaySc) {
+      awaySc = m.periodScores.half1Away;
+    }
+  }
+
   const icon = m.status === 'FINISHED' ? '🏁' : '⚡';
-  return `${icon} ${timeBadge} | ${m.homeTeam.name} ${m.homeScore} - ${m.awayScore} ${m.awayTeam.name}`;
+  return `${icon} ${timeBadge} | ${m.homeTeam.name} ${homeSc} - ${awaySc} ${m.awayTeam.name}`;
 }
 
-function formatPeriodScoresLine(m: Match): string | null {
+export function formatPeriodScoresLine(m: Match): string | null {
   const p = m.periodScores;
   const events = m.events || [];
   let h1Home = p?.half1Home;
@@ -320,21 +338,42 @@ function formatPeriodScoresLine(m: Match): string | null {
 
   // Fallback: extract from goals in events if available
   if (h1Home === undefined && events.length > 0 && (m.minute && m.minute > 45)) {
-    h1Home = events.filter(e => e.teamSide === 'home' && e.type === 'GOAL' && e.minute <= 45).length;
-    h1Away = events.filter(e => e.teamSide === 'away' && e.type === 'GOAL' && e.minute <= 45).length;
+    h1Home = events.filter(e => e.teamSide === 'home' && e.type === 'GOAL' && (e.minute || 0) <= 45).length;
+    h1Away = events.filter(e => e.teamSide === 'away' && e.type === 'GOAL' && (e.minute || 0) <= 45).length;
   }
 
   if (h1Home !== undefined && h1Away !== undefined) {
-    if (h2Home === undefined && h2Away === undefined && (m.status === 'FINISHED' || (m.minute && m.minute > 45))) {
-      h2Home = Math.max(0, m.homeScore - h1Home);
-      h2Away = Math.max(0, m.awayScore - h1Away);
+    let ftHome = m.homeScore;
+    let ftAway = m.awayScore;
+    let htHome = h1Home;
+    let htAway = h1Away;
+
+    // Guard against inverted / swapped HT and FT data from feed providers (HT can never exceed FT)
+    if (htHome > ftHome) {
+      const temp = ftHome;
+      ftHome = htHome;
+      htHome = temp;
+    }
+    if (htAway > ftAway) {
+      const temp = ftAway;
+      ftAway = htAway;
+      htAway = temp;
+    }
+
+    if (m.status === 'FINISHED') {
+      // For finished matches, scoreboard standard displays Full-Time score first, then Half-Time:
+      return `  📊 FT: ${ftHome}-${ftAway} | HT: ${htHome}-${htAway}`;
+    }
+
+    // In-play (e.g. 2nd half): show HT score and current 2nd Half score
+    if (h2Home === undefined && h2Away === undefined) {
+      h2Home = Math.max(0, ftHome - htHome);
+      h2Away = Math.max(0, ftAway - htAway);
     }
     if (h2Home !== undefined && h2Away !== undefined) {
-      const secondHalfLabel = m.status === 'FINISHED' ? 'FT' : '2nd Half';
-      const secondHalfScore = m.status === 'FINISHED' ? `${m.homeScore}-${m.awayScore}` : `${h2Home}-${h2Away}`;
-      return `  📊 HT: ${h1Home}-${h1Away} | ${secondHalfLabel}: ${secondHalfScore}`;
+      return `  📊 HT: ${htHome}-${htAway} | 2nd Half: ${h2Home}-${h2Away}`;
     }
-    return `  📊 HT: ${h1Home}-${h1Away}`;
+    return `  📊 HT: ${htHome}-${htAway}`;
   }
 
   return null;
@@ -626,11 +665,34 @@ export function formatHalfTimePost(match: Match, config: FacebookPageConfig): st
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
 
+  let htHome = match.periodScores?.half1Home ?? match.homeScore;
+  let htAway = match.periodScores?.half1Away ?? match.awayScore;
+  let ftHome = match.homeScore;
+  let ftAway = match.awayScore;
+
+  // Anti-swap correction: HT score can never be greater than FT score
+  if (htHome > ftHome) {
+    const t = ftHome;
+    ftHome = htHome;
+    htHome = t;
+  }
+  if (htAway > ftAway) {
+    const t = ftAway;
+    ftAway = htAway;
+    htAway = t;
+  }
+
   return template
     .replace(/{home_team}/g, match.homeTeam.name)
     .replace(/{away_team}/g, match.awayTeam.name)
-    .replace(/{home_score}/g, String(match.homeScore))
-    .replace(/{away_score}/g, String(match.awayScore))
+    .replace(/{home_score}/g, String(htHome))
+    .replace(/{away_score}/g, String(htAway))
+    .replace(/{ht_score}/g, `${htHome} - ${htAway}`)
+    .replace(/{ht_home_score}/g, String(htHome))
+    .replace(/{ht_away_score}/g, String(htAway))
+    .replace(/{ft_score}/g, `${ftHome} - ${ftAway}`)
+    .replace(/{ft_home_score}/g, String(ftHome))
+    .replace(/{ft_away_score}/g, String(ftAway))
     .replace(/{league_country}/g, country)
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
@@ -645,11 +707,33 @@ export function formatFullTimePost(match: Match, config: FacebookPageConfig): st
   const template = config.postTemplateFullTime || "🏁 FULL-TIME: {home_team} {home_score} - {away_score} {away_team}\n⏱️ Match Time: Full-Time (90')\n🏆 {league_name}\n{stats_summary}\n\nThanks for following!\n#{league_tag} {hashtags}";
   const { rawName, country, combinedName, leagueTag, countryTag } = getLeagueDisplayDetails(match.league);
   const leagueNameReplacement = template.includes('{league_country}') ? rawName : combinedName;
-  
+
+  let ftHome = match.homeScore;
+  let ftAway = match.awayScore;
+  let htHome = match.periodScores?.half1Home;
+  let htAway = match.periodScores?.half1Away;
+
+  // Anti-swap correction: HT score can never exceed FT score
+  if (htHome !== undefined && htHome > ftHome) {
+    const t = ftHome;
+    ftHome = htHome;
+    htHome = t;
+  }
+  if (htAway !== undefined && htAway > ftAway) {
+    const t = ftAway;
+    ftAway = htAway;
+    htAway = t;
+  }
+
+  const htScoreStr = (htHome !== undefined && htAway !== undefined) ? `${htHome} - ${htAway}` : '';
+
   let statsSummary = '';
   if (config.includeStatsInFullTime && match.stats) {
     const s = match.stats;
     const lines = [];
+    if (htScoreStr) {
+      lines.push(`Half-Time: ${htScoreStr}`);
+    }
     if (s.possessionHome !== undefined && s.possessionAway !== undefined) {
       lines.push(`Possession: ${s.possessionHome}% - ${s.possessionAway}%`);
     }
@@ -667,8 +751,14 @@ export function formatFullTimePost(match: Match, config: FacebookPageConfig): st
   return template
     .replace(/{home_team}/g, match.homeTeam.name)
     .replace(/{away_team}/g, match.awayTeam.name)
-    .replace(/{home_score}/g, String(match.homeScore))
-    .replace(/{away_score}/g, String(match.awayScore))
+    .replace(/{home_score}/g, String(ftHome))
+    .replace(/{away_score}/g, String(ftAway))
+    .replace(/{ft_score}/g, `${ftHome} - ${ftAway}`)
+    .replace(/{ft_home_score}/g, String(ftHome))
+    .replace(/{ft_away_score}/g, String(ftAway))
+    .replace(/{ht_score}/g, htScoreStr)
+    .replace(/{ht_home_score}/g, htHome !== undefined ? String(htHome) : '')
+    .replace(/{ht_away_score}/g, htAway !== undefined ? String(htAway) : '')
     .replace(/{league_country}/g, country)
     .replace(/{country}/g, country)
     .replace(/{country_tag}/g, countryTag)
@@ -890,7 +980,24 @@ export function formatHalfTimeRoundupPost(matches: Match[], config: FacebookPage
     const matchLines: string[] = [];
 
     for (const m of lMatches) {
-      const mHeader = `⏸️ HT (45') | ${m.homeTeam.name} ${m.homeScore} - ${m.awayScore} ${m.awayTeam.name}`;
+      let htHome = m.periodScores?.half1Home ?? m.homeScore;
+      let htAway = m.periodScores?.half1Away ?? m.awayScore;
+      let ftHome = m.homeScore;
+      let ftAway = m.awayScore;
+
+      // Anti-swap correction: HT score can never exceed FT score
+      if (htHome > ftHome) {
+        const t = ftHome;
+        ftHome = htHome;
+        htHome = t;
+      }
+      if (htAway > ftAway) {
+        const t = ftAway;
+        ftAway = htAway;
+        htAway = t;
+      }
+
+      const mHeader = `⏸️ HT (45') | ${m.homeTeam.name} ${htHome} - ${htAway} ${m.awayTeam.name}`;
       const linesForMatch: string[] = [mHeader];
 
       // Goal scorers during 1st half if events are available

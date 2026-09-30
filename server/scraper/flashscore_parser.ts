@@ -182,10 +182,26 @@ export function parseFlashscoreFeed(rawText: string): Match[] {
 
       // Parse 1st and 2nd half scores
       let periodScores: { half1Home?: number; half1Away?: number; half2Home?: number; half2Away?: number } | undefined = undefined;
-      const h1H = data['BC'] !== undefined && /^\d+$/.test(data['BC']) ? parseInt(data['BC'], 10) : undefined;
-      const h1A = data['BD'] !== undefined && /^\d+$/.test(data['BD']) ? parseInt(data['BD'], 10) : undefined;
-      const h2H = data['BE'] !== undefined && /^\d+$/.test(data['BE']) ? parseInt(data['BE'], 10) : undefined;
-      const h2A = data['BF'] !== undefined && /^\d+$/.test(data['BF']) ? parseInt(data['BF'], 10) : undefined;
+      let h1H = data['BC'] !== undefined && /^\d+$/.test(data['BC']) ? parseInt(data['BC'], 10) : undefined;
+      let h1A = data['BD'] !== undefined && /^\d+$/.test(data['BD']) ? parseInt(data['BD'], 10) : undefined;
+      let h2H = data['BE'] !== undefined && /^\d+$/.test(data['BE']) ? parseInt(data['BE'], 10) : undefined;
+      let h2A = data['BF'] !== undefined && /^\d+$/.test(data['BF']) ? parseInt(data['BF'], 10) : undefined;
+
+      let safeHomeScore = homeScore;
+      let safeAwayScore = awayScore;
+
+      // Anti-swap validation: in football, half-time score can never exceed the total match score
+      if (h1H !== undefined && h1H > safeHomeScore) {
+        const temp = safeHomeScore;
+        safeHomeScore = h1H;
+        h1H = temp;
+      }
+      if (h1A !== undefined && h1A > safeAwayScore) {
+        const temp = safeAwayScore;
+        safeAwayScore = h1A;
+        h1A = temp;
+      }
+
       if (h1H !== undefined || h1A !== undefined || h2H !== undefined || h2A !== undefined) {
         periodScores = {
           half1Home: h1H,
@@ -221,8 +237,8 @@ export function parseFlashscoreFeed(rawText: string): Match[] {
         league: { ...currentLeague },
         homeTeam,
         awayTeam,
-        homeScore,
-        awayScore,
+        homeScore: safeHomeScore,
+        awayScore: safeAwayScore,
         status,
         statusText: statusText || (status === 'IN_PLAY' ? (minute ? `${minute}'` : 'Live') : status === 'FINISHED' ? 'FT (90\')' : 'Upcoming'),
         minute,
